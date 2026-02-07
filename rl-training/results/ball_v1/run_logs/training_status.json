@@ -1,0 +1,47 @@
+{
+    "BallToTarget": {
+        "checkpoints": [
+            {
+                "steps": 499986,
+                "file_path": "results\\ball_v1\\BallToTarget\\BallToTarget-499986.onnx",
+                "reward": 0.896523549339988,
+                "creation_time": 1770451455.0698273,
+                "auxillary_file_paths": [
+                    "results\\ball_v1\\BallToTarget\\BallToTarget-499986.pt"
+                ]
+            },
+            {
+                "steps": 999951,
+                "file_path": "results\\ball_v1\\BallToTarget\\BallToTarget-999951.onnx",
+                "reward": 0.960464245535333,
+                "creation_time": 1770451713.0198395,
+                "auxillary_file_paths": [
+                    "results\\ball_v1\\BallToTarget\\BallToTarget-999951.pt"
+                ]
+            },
+            {
+                "steps": 1126635,
+                "file_path": "results\\ball_v1\\BallToTarget\\BallToTarget-1126635.onnx",
+                "reward": 0.9442934359048868,
+                "creation_time": 1770451812.2629478,
+                "auxillary_file_paths": [
+                    "results\\ball_v1\\BallToTarget\\BallToTarget-1126635.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 1126635,
+            "file_path": "results\\ball_v1\\BallToTarget.onnx",
+            "reward": 0.9442934359048868,
+            "creation_time": 1770451812.2629478,
+            "auxillary_file_paths": [
+                "results\\ball_v1\\BallToTarget\\BallToTarget-1126635.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.28.0",
+        "torch_version": "2.5.1"
+    }
+}

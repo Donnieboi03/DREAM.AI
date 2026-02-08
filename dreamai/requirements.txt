@@ -13,8 +13,9 @@ trimesh
 python-sat
 python-fcl
 canonicaljson
-netowrkx
+networkx
 scipy
+pandas
 
 # Backend / schemas
 pydantic>=2.0.0

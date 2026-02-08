@@ -140,7 +140,12 @@ class ThorEnv(gym.Env):
                 dict(action="Initialize", gridSize=0.25)
             )
         obs = self._get_frame()
-        info = {}
+        meta = getattr(self._last_event, "metadata", None) or {}
+        agent = meta.get("agent") or {}
+        info = {
+            "agent_position": agent.get("position"),
+            "agent_rotation": agent.get("rotation"),
+        }
         return obs, info
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
@@ -159,9 +164,13 @@ class ThorEnv(gym.Env):
             truncated = True
         else:
             truncated = False
+        agent = meta.get("agent") or {}
         info = {
             "step": self._step_count,
             "last_action_success": last_success,
+            "action_name": action_name,
+            "agent_position": agent.get("position"),
+            "agent_rotation": agent.get("rotation"),
         }
         return obs, reward, terminated, truncated, info
 

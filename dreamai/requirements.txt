@@ -1,7 +1,8 @@
-# Env & simulation
-ai2thor
+# Env & simulation (AI2-THOR 5.0+ required for ProcTHOR / CreateHouse)
+ai2thor>=5.0.0
 procthor
 gymnasium>=0.29.0
+prior
 
 # ProcTHOR runtime deps (not all in procthor's setup.py)
 attrs

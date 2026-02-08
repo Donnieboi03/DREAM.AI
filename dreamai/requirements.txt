@@ -18,5 +18,8 @@ networkx
 scipy
 pandas
 
+# Optional: global keyboard capture in demo scripts (so keys work when sim window is focused)
+pynput
+
 # Backend / schemas
 pydantic>=2.0.0

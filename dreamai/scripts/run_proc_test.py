@@ -383,6 +383,7 @@ def run_demo(
     _log("[run_proc_test] Sending first step (RotateRight) to confirm scene is live...")
     try:
         event = controller.step(action="RotateRight")
+        controller.step("Pass")
         if event.metadata["lastActionSuccess"]:
             _log("Scene loaded and agent moved.")
         else:

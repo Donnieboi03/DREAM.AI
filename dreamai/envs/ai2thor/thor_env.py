@@ -6,31 +6,7 @@ from typing import Any, Optional
 
 import gymnasium as gym
 import numpy as np
-
-# Action indices for discrete action space
-ACTION_MOVE_AHEAD = 0
-ACTION_MOVE_BACK = 1
-ACTION_ROTATE_LEFT = 2
-ACTION_ROTATE_RIGHT = 3
-ACTION_LOOK_UP = 4
-ACTION_LOOK_DOWN = 5
-ACTION_PICKUP = 6
-ACTION_DROP = 7
-ACTION_TOGGLE = 8
-
-# Use DropHandObject (valid iTHOR action); DropObject is invalid and raises.
-THOR_DISCRETE_ACTIONS = [
-    "MoveAhead",
-    "MoveBack",
-    "RotateLeft",
-    "RotateRight",
-    "LookUp",
-    "LookDown",
-    "PickupObject",
-    "DropHandObject",
-    "ToggleObjectOn",
-]
-
+from actions import THOR_DISCRETE_ACTIONS
 
 def _get_ai2thor_controller(
     scene_name: Optional[str] = None,

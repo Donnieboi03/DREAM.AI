@@ -37,6 +37,7 @@ This document describes each directory in the project, how to integrate ProcTHOR
 
 - **ProcTHOR:** Install from the **official repo as an editable package** so it works correctly with DreamAI (PyPI can be out of sync). From a clone of [allenai/procthor](https://github.com/allenai/procthor): `pip install -e .`
 - **DreamAI deps:** `pip install -r requirements.txt` (ai2thor, prior, gymnasium, pydantic, pynput, etc.). See **README.md** for full setup.
+- **Docker:** For containerized build and run (including **ARM/Apple Silicon** with `--platform=linux/amd64`), see **README.md** → “Docker (ProcTHOR / AI2-THOR)”.
 
 ### How to run the test
 

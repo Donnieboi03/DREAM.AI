@@ -1,7 +1,10 @@
+# Python image for DreamAI (ProcTHOR / AI2-THOR)
 FROM python:3.10-slim
 
 # System deps for AI2-THOR (Unity) + headless rendering
+# Plus build deps for ProcTHOR's python-fcl (Cython/C++ extension)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \    
     xvfb \
     xauth \
     procps \
@@ -22,21 +25,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2 \
     ca-certificates \
     git \
+    build-essential \
+    python3-dev \
+    libeigen3-dev \
+    libccd-dev \
+    libfcl-dev \
   && rm -rf /var/lib/apt/lists/*
-WORKDIR /dreamai
 
-# Copy your project into the container
+# Project lives at /dreamai (repo root); dreamai package at /dreamai/dreamai
+WORKDIR /dreamai
 COPY . /dreamai
 
-# Install python deps
-# Pin ai2thor to 4.x to avoid the commit_id / build mismatch
+# Install DreamAI dependencies
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install -r dreamai/requirements.txt
+ && pip install -r /dreamai/dreamai/requirements.txt
 
+# Install ProcTHOR from official repo (absolute path)
+RUN git clone https://github.com/allenai/procthor.git /procthor \
+ && pip install --no-cache-dir -e /procthor
+
+
+# VNC server entrypoint
 COPY start_vnc.sh /dreamai/start_vnc.sh
-RUN sed -i 's/\r$//' /dreamai/start_vnc.sh
-RUN chmod +x /dreamai/start_vnc.sh
+RUN sed -i 's/\r$//' /dreamai/start_vnc.sh \
+ && chmod +x /dreamai/start_vnc.sh
 
 EXPOSE 5900 6080
-
 CMD ["bash", "-lc", "/dreamai/start_vnc.sh"]

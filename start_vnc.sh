@@ -28,4 +28,4 @@ echo " - Raw VNC: localhost:5900"
 echo
 
 # 5) Start your THOR script (this will open windows on the virtual desktop)
-python -u dreamai/scripts/run_example_thor.py
+python -u dreamai/scripts/run_proc_test.py --random

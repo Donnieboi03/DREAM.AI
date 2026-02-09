@@ -52,6 +52,41 @@ pip install -r requirements.txt
 
 ---
 
+## Docker (ProcTHOR / AI2-THOR)
+
+From the **repo root** (parent of `dreamai/`), build and run the image. The container includes ProcTHOR, AI2-THOR, and a VNC/noVNC stack so you can view the simulation in a browser.
+
+**Build:**
+```bash
+docker build -t dreamai-thor .
+```
+
+**Run (expose noVNC on 6080, VNC on 5900):**
+```bash
+docker run --rm -it -p 6080:6080 -p 15900:5900 dreamai-thor
+```
+Then open `http://localhost:6080/vnc.html` in your browser.
+
+### ARM (Apple Silicon / M1/M2/M3)
+
+On ARM hosts, build and run the image for **linux/amd64** so the Unity/AI2-THOR build inside the container works correctly:
+
+**Build for amd64:**
+```bash
+docker build --platform=linux/amd64 -t dreamai-thor .
+```
+
+**Run with platform:**
+```bash
+docker run --rm -it \
+  --platform=linux/amd64 \
+  -p 6080:6080 \
+  -p 15900:5900 \
+  dreamai-thor
+```
+
+---
+
 ## Running the ProcTHOR test
 
 The script **`scripts/run_proc_test.py`** is the single demo: it loads or generates a house, starts the AI2-THOR simulator, and lets you drive the agent with the keyboard (WASD, Q/E, X to quit).

@@ -52,45 +52,16 @@ pip install -r requirements.txt
 
 ---
 
-## Docker (ProcTHOR / AI2-THOR)
+## Docker (ProcTHOR / AI2-THOR) — mainly for Windows
 
-From the **repo root** (parent of `dreamai/`), build and run the image. The container includes ProcTHOR, AI2-THOR, and a VNC/noVNC stack so you can view the simulation in a browser.
+Docker + VNC lets you run the simulation in a container and view it in your browser. All Docker files live in **`docker/`** at the repo root.
 
-**Build:**
-```bash
-docker build -t dreamai-thor .
-```
+From the **repo root** (parent of `dreamai/`):
 
-**Run (one command, works on Windows / Linux / macOS):** From the repo root:
-```bash
-python run_vnc.py
-```
-Optional: `python run_vnc.py FloorPlan201` to load a different scene. No image rebuild needed when you change code or scene. Then open `http://localhost:6080/vnc.html` in your browser.
+**Build:** `docker build -t dreamai-thor -f docker/Dockerfile .`  
+**Run:** `python docker/run_vnc.py` (optional: `python docker/run_vnc.py FloorPlan201`)
 
-Alternatively, run the container directly (no volume mount; requires rebuild to see code changes):
-```bash
-docker run --rm -it -p 6080:6080 -p 15900:5900 dreamai-thor
-```
-
-**Why you see the THOR splash screen:** Over VNC you run the AI2-THOR *player* (thor-Linux64), which always boots into its own splash scene and waits for the Python controller to send a scene. The script started by the container is that controller; it loads the house and drives the demo. See **VNC_AND_THOR.md** (repo root) for the full Editor-vs-Player explanation.
-
-### ARM (Apple Silicon / M1/M2/M3)
-
-On ARM hosts, build and run the image for **linux/amd64** so the Unity/AI2-THOR build inside the container works correctly:
-
-**Build for amd64:**
-```bash
-docker build --platform=linux/amd64 -t dreamai-thor .
-```
-
-**Run with platform:**
-```bash
-docker run --rm -it \
-  --platform=linux/amd64 \
-  -p 6080:6080 \
-  -p 15900:5900 \
-  dreamai-thor
-```
+Then open **http://localhost:6080/vnc.html**. Full instructions, port overrides, and ARM (Apple Silicon) notes: see **[../docker/README.md](../docker/README.md)**.
 
 ---
 

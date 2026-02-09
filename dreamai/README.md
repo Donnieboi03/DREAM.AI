@@ -61,11 +61,18 @@ From the **repo root** (parent of `dreamai/`), build and run the image. The cont
 docker build -t dreamai-thor .
 ```
 
-**Run (expose noVNC on 6080, VNC on 5900):**
+**Run (one command, works on Windows / Linux / macOS):** From the repo root:
+```bash
+python run_vnc.py
+```
+Optional: `python run_vnc.py FloorPlan201` to load a different scene. No image rebuild needed when you change code or scene. Then open `http://localhost:6080/vnc.html` in your browser.
+
+Alternatively, run the container directly (no volume mount; requires rebuild to see code changes):
 ```bash
 docker run --rm -it -p 6080:6080 -p 15900:5900 dreamai-thor
 ```
-Then open `http://localhost:6080/vnc.html` in your browser.
+
+**Why you see the THOR splash screen:** Over VNC you run the AI2-THOR *player* (thor-Linux64), which always boots into its own splash scene and waits for the Python controller to send a scene. The script started by the container is that controller; it loads the house and drives the demo. See **VNC_AND_THOR.md** (repo root) for the full Editor-vs-Player explanation.
 
 ### ARM (Apple Silicon / M1/M2/M3)
 

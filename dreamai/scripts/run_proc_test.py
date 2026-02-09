@@ -155,9 +155,14 @@ Top-level keys: rooms, walls, doors, windows, objects, proceduralParameters, met
 
 import argparse
 import json
+import os
 import random
 import sys
 from pathlib import Path
+
+# Ensure Docker/VNC shows progress immediately (no buffering)
+def _log(msg: str) -> None:
+    print(msg, flush=True)
 
 import prior
 from ai2thor.controller import Controller
@@ -254,6 +259,7 @@ def run_demo(
     height=600,
 ):
     """Load or generate a house, then run keyboard-controlled demo."""
+    _log("[run_proc_test] Starting (VNC/Docker: watch this terminal for progress)...")
     _script_dir = Path(__file__).resolve().parent
     if str(_script_dir) not in sys.path:
         sys.path.insert(0, str(_script_dir))
@@ -262,23 +268,52 @@ def run_demo(
     house_data = None
     source = None
 
+    # --- VNC diagnostic: use built-in iTHOR scene (no dataset, no CreateHouse) ---
+    # Scene is controlled by DREAMAI_VNC_SCENE (default FloorPlan1). Examples: FloorPlan1, FloorPlan201, FloorPlan301.
+    if os.environ.get("DREAMAI_VNC_TEST"):
+        vnc_scene = os.environ.get("DREAMAI_VNC_SCENE", "FloorPlan1").strip() or "FloorPlan1"
+        _log(f"[run_proc_test] DREAMAI_VNC_TEST=1: using built-in scene {vnc_scene!r} (set DREAMAI_VNC_SCENE to change).")
+        try:
+            controller = Controller(
+                agentMode="default",
+                visibilityDistance=1.5,
+                scene=vnc_scene,
+                width=width,
+                height=height,
+                fullscreen=fullscreen,
+                snapToGrid=True,
+                gridSize=0.25,
+                rotateStepDegrees=90.0,
+            )
+            source = f"{vnc_scene} (VNC test)"
+            _log(f"[run_proc_test] Controller created with {vnc_scene}.")
+        except Exception as e:
+            _log(f"[run_proc_test] Controller({vnc_scene}) failed: {e}")
+            raise
+
     # --- Example schema mode: use canonical example house dict ---
-    if use_example_schema:
-        print("Loading example house schema (ProcTHOR-10K train[0])...")
+    if controller is None and use_example_schema:
+        _log("[run_proc_test] Loading example house schema (ProcTHOR-10K train[0])...")
         house_data = get_example_house_schema()
         source = "example schema (10K train[0])"
-        print(f"Example schema keys: {list(house_data.keys())}")
-        controller = Controller(
-            agentMode="default",
-            visibilityDistance=1.5,
-            scene=house_data,
-            width=width,
-            height=height,
-            fullscreen=fullscreen,
-            snapToGrid=True,
-            gridSize=0.25,
-            rotateStepDegrees=90.0,
-        )
+        _log(f"[run_proc_test] Example schema keys: {list(house_data.keys())}")
+        _log("[run_proc_test] Creating Controller (this may download/build and start THOR player; can take a minute on first run)...")
+        try:
+            controller = Controller(
+                agentMode="default",
+                visibilityDistance=1.5,
+                scene=house_data,
+                width=width,
+                height=height,
+                fullscreen=fullscreen,
+                snapToGrid=True,
+                gridSize=0.25,
+                rotateStepDegrees=90.0,
+            )
+            _log("[run_proc_test] Controller created; scene should load in the THOR window.")
+        except Exception as e:
+            _log(f"[run_proc_test] Controller() failed: {e}")
+            raise
 
     # --- Config mode: try procedural generation, else fallback to 10K ---
     if controller is None and config is not None:
@@ -303,11 +338,11 @@ def run_demo(
                     else:
                         raise
         if controller is None:
-            print("Loading ProcTHOR-10K (compat revision)...")
+            _log("Loading ProcTHOR-10K (compat revision)...")
             dataset = prior.load_dataset("procthor-10k", revision=PROCTHOR_10K_REVISION)
             house_data, _ = get_house_from_dataset(dataset, split="train", index=0)
             source = "10K fallback (train[0])"
-            print("Initializing Controller with house from dataset...")
+            _log("[run_proc_test] Creating Controller (10K fallback)...")
             controller = Controller(
                 agentMode="default",
                 visibilityDistance=1.5,
@@ -322,13 +357,14 @@ def run_demo(
 
     # --- Dataset mode: load from 10K only ---
     if controller is None:
-        print("Loading ProcTHOR-10K (compat revision)...")
+        _log("Loading ProcTHOR-10K (compat revision)...")
         dataset = prior.load_dataset("procthor-10k", revision=PROCTHOR_10K_REVISION)
         house_data, resolved_index = get_house_from_dataset(
             dataset, split=split, index=index, random_house=random_house, seed=dataset_seed
         )
         source = f"10K {split}[{resolved_index}]"
-        print(f"House: {source}. Keys: {list(house_data.keys())}")
+        _log(f"House: {source}. Keys: {list(house_data.keys())}")
+        _log("[run_proc_test] Creating Controller (dataset mode)...")
         controller = Controller(
             agentMode="default",
             visibilityDistance=1.5,
@@ -342,13 +378,18 @@ def run_demo(
         )
 
     if source:
-        print(f"Source: {source}")
+        _log(f"Source: {source}")
 
-    event = controller.step(action="RotateRight")
-    if event.metadata["lastActionSuccess"]:
-        print("Scene loaded and agent moved.")
-    else:
-        print("Scene loaded.")
+    _log("[run_proc_test] Sending first step (RotateRight) to confirm scene is live...")
+    try:
+        event = controller.step(action="RotateRight")
+        if event.metadata["lastActionSuccess"]:
+            _log("Scene loaded and agent moved.")
+        else:
+            _log("Scene loaded.")
+    except Exception as e:
+        _log(f"[run_proc_test] First step() failed: {e}")
+        raise
 
     print("\n" + "=" * 60)
     print("KEYBOARD: W/S/A/D move, Q/E look up/down, X quit")

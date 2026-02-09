@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DREAM.AI - Full Screen Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #topBar {
+            padding: 15px 20px;
+            background: #2a2a2a;
+            border-bottom: 2px solid #0066cc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #status {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        #frame-info {
+            font-size: 14px;
+            color: #0f0;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        #gameContainer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            image-rendering: crisp-edges;
+        }
+        
+        #controlPanel {
+            width: 250px;
+            background: #2a2a2a;
+            border: 2px solid #0066cc;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        
+        .control-section {
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0066cc;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #0066cc;
+            padding-bottom: 5px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .button-grid.full {
+            grid-template-columns: 1fr;
+        }
+        
+        button {
+            padding: 10px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #0052a3;
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            background: #003d7a;
+            transform: scale(0.98);
+        }
+        
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="topBar">
+        <div>
+            <h1 style="margin: 0; font-size: 24px;">DREAM.AI Control</h1>
+        </div>
+        <div style="text-align: right;">
+            <div id="status">Connecting...</div>
+            <div id="frame-info">Waiting for frames...</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+        </div>
+        
+        <div id="controlPanel">
+            <div class="control-section">
+                <div class="section-title">Scene Selection</div>
+                <div class="button-grid full">
+                    <select id="sceneSelect" style="padding: 8px; background: #0066cc; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        <option value="FloorPlan1">FloorPlan1</option>
+                        <option value="FloorPlan2">FloorPlan2</option>
+                        <option value="FloorPlan201">FloorPlan201</option>
+                        <option value="FloorPlan202">FloorPlan202</option>
+                        <option value="FloorPlan203">FloorPlan203</option>
+                        <option value="FloorPlan204">FloorPlan204</option>
+                        <option value="FloorPlan205">FloorPlan205</option>
+                        <option value="FloorPlan206">FloorPlan206</option>
+                        <option value="FloorPlan207">FloorPlan207</option>
+                        <option value="FloorPlan208">FloorPlan208</option>
+                        <option value="FloorPlan209">FloorPlan209</option>
+                        <option value="FloorPlan210">FloorPlan210</option>
+                    </select>
+                    <button onclick="loadScene()" style="margin-top: 8px;">📂 Load Scene</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">Movement</div>
+                <div class="button-grid">
+                    <button onclick="sendAction(0)">↑ Ahead</button>
+                    <button onclick="sendAction(1)">↓ Back</button>
+                    <button onclick="sendAction(2)">← Left</button>
+                    <button onclick="sendAction(3)">→ Right</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">Look</div>
+                <div class="button-grid">
+                    <button onclick="sendAction(4)">⬆ Up</button>
+                    <button onclick="sendAction(5)">⬇ Down</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">Interact</div>
+                <div class="button-grid full">
+                    <button onclick="sendAction(6)">🔍 Pickup</button>
+                    <button onclick="sendAction(7)">✋ Drop</button>
+                    <button onclick="sendAction(8)">🔲 Toggle</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">Environment</div>
+                <div class="button-grid full">
+                    <button onclick="resetEnvironment()">🔄 Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        // Always connect to localhost (nginx) for WebSocket, not the current host
+        const wsUrl = `${wsProtocol}//localhost/ws/game`;
+
+        console.log("WebSocket URL:", wsUrl);
+
+        let ws = null;
+        let frameCount = 0;
+        let lastFrameTime = Date.now();
+
+        function getCanvasResolution() {
+            const container = document.getElementById('gameContainer');
+            return {
+                width: Math.floor(container.clientWidth),
+                height: Math.floor(container.clientHeight)
+            };
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(wsUrl);
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d', { alpha: false });
+            
+            ws.onopen = function() {
+                console.log("Connected!");
+                document.getElementById('status').textContent = "✓ Connected";
+                document.getElementById('status').style.color = "#0f0";
+                
+                // Get and send canvas resolution
+                const res = getCanvasResolution();
+                console.log("Sending resolution:", res);
+                ws.send(JSON.stringify({ 
+                    type: "set_resolution", 
+                    width: res.width, 
+                    height: res.height 
+                }));
+                
+                ws.send(JSON.stringify({ type: "start_streaming" }));
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    
+                    if (message.type === "frame" && message.jpeg_base64) {
+                        frameCount++;
+                        const now = Date.now();
+                        const fps = frameCount % 10 === 0 ? 
+                            (1000 / (now - lastFrameTime) * 10).toFixed(1) : 
+                            null;
+                        lastFrameTime = now;
+                        
+                        document.getElementById('frame-info').textContent = 
+                            `Frames: ${frameCount}${fps ? ` | FPS: ${fps}` : ''}`;
+                        
+                        const img = new Image();
+                        img.onload = function() {
+                            // Update canvas size to match image
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = `data:image/jpeg;base64,${message.jpeg_base64}`;
+                    } else if (message.type === "action_result") {
+                        console.log("Action result:", message.data);
+                    } else if (message.type === "reset_result") {
+                        console.log("Reset result:", message.data);
+                    } else if (message.type === "scene_loaded") {
+                        console.log("Scene loaded:", message.scene);
+                    }
+                } catch (e) {
+                    console.error("Error parsing message:", e);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error("WebSocket error:", error);
+                document.getElementById('status').textContent = "✗ Error";
+                document.getElementById('status').style.color = "#f00";
+            };
+            
+            ws.onclose = function() {
+                console.log("Disconnected");
+                document.getElementById('status').textContent = "✗ Disconnected";
+                document.getElementById('status').style.color = "#f00";
+                // Try to reconnect after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        function sendAction(actionIndex) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log("Sending action:", actionIndex);
+                ws.send(JSON.stringify({ type: "action", action: actionIndex }));
+            } else {
+                console.error("WebSocket not connected");
+            }
+        }
+        
+        function resetEnvironment() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log("Sending reset");
+                ws.send(JSON.stringify({ type: "reset" }));
+            } else {
+                console.error("WebSocket not connected");
+            }
+        }
+        
+        function loadScene() {
+            const sceneName = document.getElementById('sceneSelect').value;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log("Loading scene:", sceneName);
+                ws.send(JSON.stringify({ type: "load_scene", scene: sceneName }));
+            } else {
+                console.error("WebSocket not connected");
+            }
+        }
+        
+        // Connect on page load
+        connectWebSocket();
+        
+        // Handle window resize to update resolution
+        window.addEventListener('resize', function() {
+            const canvas = document.getElementById('gameCanvas');
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            
+            // Send new resolution to backend
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const res = getCanvasResolution();
+                console.log("Sending new resolution:", res);
+                ws.send(JSON.stringify({ 
+                    type: "set_resolution", 
+                    width: res.width, 
+                    height: res.height 
+                }));
+            }
+        });
+    </script>
+</body>
+</html>

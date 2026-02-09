@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: dreamai-backend
+    expose:
+      - "8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    networks:
+      - dreamai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  frontend:
+    build:
+      context: ./dreamai/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend
+    expose:
+      - "5173"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - dreamai-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: dreamai-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - /dev/null:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - dreamai-network
+
+networks:
+  dreamai-network:
+    driver: bridge

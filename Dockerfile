@@ -1,17 +1,28 @@
-# Python image for DreamAI (ProcTHOR / AI2-THOR)
+# Multi-stage build: compile stage + runtime stage
+FROM python:3.10-slim as builder
+
+# Build dependencies for ProcTHOR (python-fcl, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    libeigen3-dev \
+    libccd-dev \
+    libfcl-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY dreamai/requirements.txt .
+
+# Build wheels for faster installation
+RUN pip install --user --no-cache-dir --upgrade pip wheel \
+    && pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
+
+# Runtime stage
 FROM python:3.10-slim
 
-# System deps for AI2-THOR (Unity) + headless rendering
-# Plus build deps for ProcTHOR's python-fcl (Cython/C++ extension)
+# Runtime dependencies for AI2-THOR (headless rendering + web)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \    
-    xvfb \
-    xauth \
-    procps \
-    fluxbox \
-    x11vnc \
-    novnc \
-    websockify \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
@@ -24,31 +35,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 \
     libasound2 \
     ca-certificates \
-    git \
-    build-essential \
-    python3-dev \
     libeigen3-dev \
     libccd-dev \
     libfcl-dev \
-  && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Project lives at /dreamai (repo root); dreamai package at /dreamai/dreamai
 WORKDIR /dreamai
-COPY . /dreamai
 
-# Install DreamAI dependencies
+# Copy wheels from builder
+COPY --from=builder /build/wheels /tmp/wheels
+COPY dreamai/requirements.txt .
+
+# Install wheels (no index, pre-built)
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install -r /dreamai/dreamai/requirements.txt
+    && pip install --no-index --find-links=/tmp/wheels -r requirements.txt \
+    && rm -rf /tmp/wheels
 
-# Install ProcTHOR from official repo (absolute path)
-RUN git clone https://github.com/allenai/procthor.git /procthor \
- && pip install --no-cache-dir -e /procthor
+# Copy application code
+COPY dreamai/ /dreamai/
 
+# Expose FastAPI port (default 8000)
+EXPOSE 8000
 
-# VNC server entrypoint
-COPY start_vnc.sh /dreamai/start_vnc.sh
-RUN sed -i 's/\r$//' /dreamai/start_vnc.sh \
- && chmod +x /dreamai/start_vnc.sh
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-EXPOSE 5900 6080
-CMD ["bash", "-lc", "/dreamai/start_vnc.sh"]
+# Run FastAPI server
+CMD ["uvicorn", "backend.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -22,6 +22,12 @@ pandas
 # Optional: global keyboard capture in demo scripts (so keys work when sim window is focused)
 pynput
 
+# LLM (Gemini API for Orchestrator + Scene generator)
+google-genai
+
+# Load .env for GEMINI_API_KEY / GOOGLE_API_KEY
+python-dotenv
+
 # Backend / schemas
 pydantic>=2.0.0
 

@@ -40,4 +40,4 @@ export PYTHONUNBUFFERED=1
 export DREAMAI_VNC_TEST=4
 [ -n "${DREAMAI_VNC_SCENE:-}" ] && echo "Scene: ${DREAMAI_VNC_SCENE}"
 echo "Starting Python controller (watch for [run_proc_test] messages below)..."
-python dreamai/scripts/run_proc_test.py --use-example-schema --no-fullscreen
+python dreamai/scripts/run_llm_house_e2e.py "I want a big house with 12 rooms"

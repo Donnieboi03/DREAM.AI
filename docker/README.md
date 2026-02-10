@@ -6,6 +6,26 @@ Use the **project root** as the folder that contains `dreamai/` and `docker/` (o
 
 ---
 
+## Testing image (Dockerfile.testing)
+
+**Dockerfile.testing** is used to build an image for running tests and the full DreamAI stack (ProcTHOR, VNC, dependencies). It installs DreamAI requirements and ProcTHOR from the official repo, and is set up for starting the testing environment (e.g. VNC + THOR).
+
+**Build the testing image** from the **repo root**:
+
+```bash
+docker build -f docker/Dockerfile.testing -t my-ai2thor-image .
+```
+
+On **Apple Silicon (M1/M2/M3)** use the amd64 platform:
+
+```bash
+docker build --platform=linux/amd64 -f docker/Dockerfile.testing -t my-ai2thor-image .
+```
+
+Then run a container from `my-ai2thor-image` (e.g. with the same entrypoint as the main Dockerfile, or override for running pytest). Rebuild when you change `Dockerfile.testing` or `dreamai/requirements.txt`.
+
+---
+
 ## 1. Build the image (once)
 
 From the **repo root**:

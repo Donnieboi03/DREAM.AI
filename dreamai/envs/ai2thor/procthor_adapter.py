@@ -73,3 +73,61 @@ def scene_spec_to_procthor_options(scene_spec: Optional["_SceneSpec"]) -> dict[s
     if s is not None:
         opts["seed"] = s
     return opts
+
+
+def make_procthor_env(
+    width: int = 400,
+    height: int = 400,
+    scene_spec: Optional["_SceneSpec"] = None,
+) -> "Any":
+    """Create a procedural AI2-THOR environment for interactive control.
+    
+    This initializes a ProcTHOR scene with the given dimensions and optionally
+    a specific scene specification (e.g., from a task generator).
+    
+    If ProcTHOR fails (e.g., "Unable to CreateHouse!"), falls back to a regular
+    AI2-THOR scene (FloorPlan1).
+    
+    Args:
+        width: Canvas width in pixels (default 400)
+        height: Canvas height in pixels (default 400)
+        scene_spec: Optional SceneSpec to control procedural generation (e.g., seed)
+        
+    Returns:
+        ThorEnv: An environment wrapper for interactive control of the procedural scene.
+    """
+    from .thor_env import ThorEnv
+    
+    # Try to create a ProcTHOR scene first
+    try:
+        options = scene_spec_to_procthor_options(scene_spec)
+        controller, house = create_procthor_scene(**options)
+        env = ThorEnv(controller=controller, width=width, height=height, render_mode="rgb_array")
+        print("✓ ProcTHOR environment initialized successfully")
+        return env
+    except Exception as e:
+        print(f"⚠ ProcTHOR initialization failed: {e}")
+        print("  Falling back to regular AI2-THOR scene (FloorPlan1)...")
+        
+        # Fallback to regular AI2-THOR scene
+        try:
+            from ai2thor.controller import Controller
+            
+            controller = Controller(
+                scene="FloorPlan1",
+                gridSize=0.25,
+                visibilityDistance=1.5,
+            )
+            
+            env = ThorEnv(controller=controller, width=width, height=height, render_mode="rgb_array")
+            print("✓ Fallback AI2-THOR environment initialized successfully")
+            return env
+        except Exception as fallback_error:
+            print(f"✗ Both ProcTHOR and fallback initialization failed!")
+            print(f"  Original error: {e}")
+            print(f"  Fallback error: {fallback_error}")
+            raise RuntimeError(
+                f"Failed to initialize environment. "
+                f"ProcTHOR: {e}. Fallback: {fallback_error}"
+            )
+

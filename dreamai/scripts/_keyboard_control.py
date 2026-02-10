@@ -22,7 +22,7 @@ import threading
 import tty
 from typing import Any, Callable, Optional
 
-from actions import THOR_DISCRETE_ACTIONS
+from dreamai.scripts.actions import THOR_DISCRETE_ACTIONS
 
 # Map keyboard keys -> discrete action IDs (must align with THOR_DISCRETE_ACTIONS indices)
 KEY_ACTIONS = {

@@ -1,5 +1,5 @@
 # Single-stage build: all dependencies + app in one image
-FROM python:3.10-slim
+FROM --platform=linux/amd64 python:3.10-slim
 
 # Build + runtime dependencies for ProcTHOR (AI2-THOR)
 # Including xvfb for virtual X display in headless mode

@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 import gymnasium as gym
 import numpy as np
-from actions import THOR_DISCRETE_ACTIONS
+from dreamai.scripts.actions import THOR_DISCRETE_ACTIONS
 
 def _get_ai2thor_controller(
     scene_name: Optional[str] = None,

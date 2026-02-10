@@ -10,6 +10,25 @@ except ImportError:
     _SceneSpec = None
 
 
+def get_procthor_room_spec_ids() -> list[str]:
+    """Return valid ProcTHOR room_spec_id values from PROCTHOR10K_ROOM_SPEC_SAMPLER.
+
+    Used by the Orchestrator LLM prompt and by DeclarativeSpec validation so the model
+    knows which layout ids it can output (e.g. 2-bed-1-bath, 12-room, kitchen-living-room).
+    """
+    try:
+        from procthor.generation import PROCTHOR10K_ROOM_SPEC_SAMPLER
+        return sorted(PROCTHOR10K_ROOM_SPEC_SAMPLER.room_spec_map.keys())
+    except Exception:
+        return [
+            "kitchen", "living-room", "bedroom", "bathroom",
+            "kitchen-living-room", "2-bed-1-bath", "2-bed-2-bath",
+            "4-room", "5-room", "7-room-3-bed", "8-room-3-bed",
+            "12-room", "12-room-3-bed", "bedroom-bathroom",
+            "kitchen-living-bedroom-room", "kitchen-living-bedroom-room2",
+        ]
+
+
 def create_procthor_scene(
     seed: Optional[int] = None,
     split: str = "train",

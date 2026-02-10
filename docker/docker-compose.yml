@@ -2,9 +2,12 @@ version: '3.9'
 
 services:
   backend:
+    platform: linux/amd64
     build:
       context: ..
       dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
     container_name: dreamai-backend
     ports:
       - "8000:8000"

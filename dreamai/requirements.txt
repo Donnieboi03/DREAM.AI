@@ -7,6 +7,7 @@ prior
 # ProcTHOR runtime deps (not all in procthor's setup.py)
 attrs
 shapely
+decorator>=4.0.2,<5.0
 moviepy<2
 numpy
 matplotlib
@@ -23,3 +24,14 @@ pynput
 
 # Backend / schemas
 pydantic>=2.0.0
+
+# Web server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Image processing
+pillow>=10.0.0
+
+# Async/concurrency
+aiofiles>=23.2.0

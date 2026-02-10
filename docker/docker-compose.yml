@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  backend:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+    restart: unless-stopped
+    networks:
+      - dreamai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  dreamai-network:
+    driver: bridge

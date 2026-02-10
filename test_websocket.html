@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DREAM.AI - Game Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #topBar {
+            padding: 15px 20px;
+            background: #2a2a2a;
+            border-bottom: 2px solid #0066cc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        #status {
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        #frame-info {
+            font-size: 14px;
+            color: #0f0;
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            padding: 10px;
+            min-height: 0;
+            min-width: 0;
+        }
+        
+        #gameContainer {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            min-width: 0;
+            min-height: 0;
+        }
+        
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            image-rendering: crisp-edges;
+        }
+        
+        #controlPanel {
+            width: 300px;
+            background: #2a2a2a;
+            border: 2px solid #0066cc;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        
+        .control-section {
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: #0066cc;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #0066cc;
+            padding-bottom: 5px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .button-grid.full {
+            grid-template-columns: 1fr;
+        }
+        
+        button {
+            padding: 10px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #0052a3;
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            background: #003d7a;
+            transform: scale(0.98);
+        }
+        
+        button:disabled {
+            background: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .keyboard-help {
+            font-size: 11px;
+            color: #888;
+            line-height: 1.4;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            margin-top: auto;
+        }
+        
+        .keyboard-help strong {
+            color: #0f0;
+        }
+        
+        #promptOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 26, 0.95);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            border-bottom: 2px solid #0066cc;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        #promptInput {
+            padding: 12px;
+            background: #1a1a1a;
+            color: white;
+            border: 2px solid #0066cc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 400px;
+            max-width: 80%;
+        }
+        
+        #promptInput::placeholder {
+            color: #666;
+        }
+        
+        #promptInput:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        #submitPromptBtn {
+            padding: 12px 20px;
+            background: #00aa00;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        
+        #submitPromptBtn:hover {
+            background: #00dd00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        #closePromptBtn {
+            background: #cc0000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        #closePromptBtn:hover {
+            background: #ff0000;
+        }
+        
+        select {
+            padding: 8px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="promptOverlay">
+        <input type="text" id="promptInput" placeholder="Enter task prompt for MasterLLM..." />
+        <button id="submitPromptBtn">Submit</button>
+        <button id="closePromptBtn">✕</button>
+    </div>
+    
+    <div id="topBar">
+        <div>
+            <h1 style="margin: 0; font-size: 24px;">DREAM.AI Control</h1>
+        </div>
+        <div style="text-align: right;">
+            <div id="status">Connecting...</div>
+            <div id="frame-info">Waiting for frames...</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="gameContainer">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        
+        <div id="controlPanel">
+            <div class="control-section">
+                <div class="section-title">Scene Selection</div>
+                <div class="button-grid full">
+                    <select id="sceneSelect">
+                        <option value="FloorPlan1">FloorPlan1</option>
+                        <option value="FloorPlan2">FloorPlan2</option>
+                        <option value="FloorPlan201">FloorPlan201</option>
+                        <option value="FloorPlan202">FloorPlan202</option>
+                        <option value="FloorPlan203">FloorPlan203</option>
+                        <option value="FloorPlan204">FloorPlan204</option>
+                        <option value="FloorPlan205">FloorPlan205</option>
+                        <option value="FloorPlan206">FloorPlan206</option>
+                        <option value="FloorPlan207">FloorPlan207</option>
+                        <option value="FloorPlan208">FloorPlan208</option>
+                        <option value="FloorPlan209">FloorPlan209</option>
+                        <option value="FloorPlan210">FloorPlan210</option>
+                    </select>
+                    <button onclick="loadScene()" style="margin-top: 8px;">📂 Load Scene</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">Mouse Controls</div>
+                <div class="button-grid">
+                    <button onclick="sendAction(6)">🔍 Pickup</button>
+                    <button onclick="sendAction(7)">✋ Drop</button>
+                    <button onclick="sendAction(8)">🔲 Toggle</button>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">Environment</div>
+                <div class="button-grid full">
+                    <button onclick="resetEnvironment()">🔄 Reset</button>
+                </div>
+            </div>
+
+            <div class="keyboard-help">
+                <strong>Keyboard Controls:</strong><br/>
+                <strong>W/S</strong> - Move forward/back<br/>
+                <strong>A/D</strong> - Turn left/right<br/>
+                <strong>Q/E</strong> - Look up/down<br/>
+                <strong>F</strong> - Pickup<br/>
+                <strong>G</strong> - Drop<br/>
+                <strong>T</strong> - Toggle
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//localhost:8000/ws/game`;
+
+        console.log("WebSocket URL:", wsUrl);
+
+        let ws = null;
+        let frameCount = 0;
+        let lastFrameTime = Date.now();
+        const keysPressed = {};
+
+        // Prompt box handlers
+        document.getElementById('submitPromptBtn').addEventListener('click', function() {
+            const prompt = document.getElementById('promptInput').value;
+            if (prompt.trim()) {
+                console.log("Submitting prompt:", prompt);
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: "prompt", text: prompt }));
+                }
+                document.getElementById('promptInput').value = '';
+            }
+        });
+
+        document.getElementById('closePromptBtn').addEventListener('click', function() {
+            document.getElementById('promptOverlay').style.display = 'none';
+        });
+
+        document.getElementById('promptInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('submitPromptBtn').click();
+            }
+        });
+
+        // Toggle prompt overlay with P key
+        document.addEventListener('keydown', function(e) {
+            if (e.key.toLowerCase() === 'p' && e.ctrlKey) {
+                e.preventDefault();
+                const overlay = document.getElementById('promptOverlay');
+                overlay.style.display = overlay.style.display === 'none' ? 'flex' : 'none';
+                if (overlay.style.display === 'flex') {
+                    document.getElementById('promptInput').focus();
+                }
+            }
+        });
+
+        function getCanvasResolution() {
+            const container = document.getElementById('gameContainer');
+            return {
+                width: Math.floor(container.clientWidth),
+                height: Math.floor(container.clientHeight)
+            };
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(wsUrl);
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d', { alpha: false });
+            
+            ws.onopen = function() {
+                console.log("Connected!");
+                document.getElementById('status').textContent = "✓ Connected";
+                document.getElementById('status').style.color = "#0f0";
+                
+                const res = getCanvasResolution();
+                console.log("Sending resolution:", res);
+                ws.send(JSON.stringify({ 
+                    type: "set_resolution", 
+                    width: res.width, 
+                    height: res.height 
+                }));
+                
+                ws.send(JSON.stringify({ type: "start_streaming" }));
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    
+                    if (message.type === "frame" && message.jpeg_base64) {
+                        frameCount++;
+                        const now = Date.now();
+                        const fps = frameCount % 10 === 0 ? 
+                            (1000 / (now - lastFrameTime) * 10).toFixed(1) : 
+                            null;
+                        lastFrameTime = now;
+                        
+                        document.getElementById('frame-info').textContent = 
+                            `Frames: ${frameCount}${fps ? ` | FPS: ${fps}` : ''}`;
+                        
+                        const img = new Image();
+                        img.onload = function() {
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = `data:image/jpeg;base64,${message.jpeg_base64}`;
+                    }
+                } catch (e) {
+                    console.error("Error parsing message:", e);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error("WebSocket error:", error);
+                document.getElementById('status').textContent = "✗ Error";
+                document.getElementById('status').style.color = "#f00";
+            };
+            
+            ws.onclose = function() {
+                console.log("Disconnected");
+                document.getElementById('status').textContent = "✗ Disconnected";
+                document.getElementById('status').style.color = "#f00";
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', function(e) {
+            const key = e.key.toLowerCase();
+            keysPressed[key] = true;
+            
+            let action = null;
+            switch(key) {
+                case 'w': action = 0; break;  // Move ahead
+                case 's': action = 1; break;  // Move back
+                case 'a': action = 2; break;  // Turn left
+                case 'd': action = 3; break;  // Turn right
+                case 'q': action = 4; break;  // Look up
+                case 'e': action = 5; break;  // Look down
+                case 'f': action = 6; break;  // Pickup
+                case 'g': action = 7; break;  // Drop
+                case 't': action = 8; break;  // Toggle
+            }
+            
+            if (action !== null) {
+                e.preventDefault();
+                sendAction(action);
+            }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            const key = e.key.toLowerCase();
+            keysPressed[key] = false;
+        });
+        
+        function sendAction(actionIndex) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log("Sending action:", actionIndex);
+                ws.send(JSON.stringify({ type: "action", action: actionIndex }));
+            }
+        }
+        
+        function resetEnvironment() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log("Sending reset");
+                ws.send(JSON.stringify({ type: "reset" }));
+            }
+        }
+        
+        function loadScene() {
+            const sceneName = document.getElementById('sceneSelect').value;
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                console.log("Loading scene:", sceneName);
+                ws.send(JSON.stringify({ type: "load_scene", scene: sceneName }));
+            }
+        }
+        
+        // Connect on page load
+        connectWebSocket();
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const canvas = document.getElementById('gameCanvas');
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                const res = getCanvasResolution();
+                console.log("Sending new resolution:", res);
+                ws.send(JSON.stringify({ 
+                    type: "set_resolution", 
+                    width: res.width, 
+                    height: res.height 
+                }));
+            }
+        });
+    </script>
+</body>
+</html>

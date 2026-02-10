@@ -1,40 +1,30 @@
 @echo off
-REM DREAM.AI Launcher - Starts Docker containers and opens the game interface
-
+setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-echo ========================================
-echo DREAM.AI - Starting Services
-echo ========================================
-echo.
-
-echo [1/4] Starting Docker containers...
-docker-compose down >nul 2>&1
-docker-compose up -d
-
-echo [2/4] Waiting for services to initialize (45 seconds)...
-timeout /t 45 /nobreak
-
-echo.
-echo [3/4] Checking container status...
-docker-compose ps
-
-echo.
-echo [4/4] Starting HTTP server and opening browser...
-start python -m http.server 8888 --directory .
-timeout /t 2
-
-echo.
-echo ========================================
-echo Launching browser at http://localhost:8888/test_websocket.html
-echo ========================================
-echo.
-
-start http://localhost:8888/test_websocket.html
-
-echo.
-echo Done! The game should open in your browser.
-echo.
-echo To stop everything later, run: docker-compose down
-echo.
+REM Check if container is running
+docker ps | find "dreamai-backend" >nul 2>&1
+if !errorlevel! equ 0 (
+    echo.
+    echo Stopping DREAM.AI...
+    cd docker
+    docker-compose down
+    cd ..
+    echo.
+    echo ✓ DREAM.AI stopped
+    echo.
+) else (
+    echo.
+    echo Starting DREAM.AI...
+    cd docker
+    docker-compose up -d
+    cd ..
+    echo.
+    echo ✓ Backend started! Opening browser...
+    echo.
+    echo Starting HTTP server on port 8888...
+    echo.
+    start http://localhost:8888/test_websocket.html
+    python -m http.server 8888 --directory .
+)
 pause

@@ -40,7 +40,7 @@ RUN pip install --no-cache-dir --upgrade pip wheel \
 COPY dreamai/ /dreamai/
 
 # Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Set PYTHONPATH so imports work from /dreamai

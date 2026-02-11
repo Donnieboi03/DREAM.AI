@@ -6,6 +6,15 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
+# Load .env from repo root if present (GEMINI_API_KEY, GOOGLE_API_KEY, etc.)
+# You can also pass these via docker run -e GEMINI_API_KEY=... (takes precedence)
+if [ -f "${ROOT}/.env" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  . "${ROOT}/.env"
+  set +a
+fi
+
 export DISPLAY=:99
 export SCREEN_RESOLUTION="${SCREEN_RESOLUTION:-1280x720x24}"
 
@@ -34,10 +43,16 @@ echo
 
 # 5) Start the AI2-THOR *controller* (Python). This launches the thor-Linux64 player,
 #    sends the scene to load, and runs the keyboard loop.
-#    Scene for VNC: set DREAMAI_VNC_SCENE (e.g. FloorPlan1, FloorPlan201) when running
-#    the container; default is FloorPlan1. No image rebuild needed—use -v to mount repo.
+#
+# Supported env (pass via docker run -e or in mounted .env):
+#   GEMINI_API_KEY or GOOGLE_API_KEY  - for Orchestrator + Scene generator LLM (optional; use --no-llm in script to skip)
+#   DREAMAI_VNC_SCENE                 - e.g. FloorPlan1, FloorPlan201 (used if script uses it)
+#   SCREEN_RESOLUTION                 - Xvfb resolution, default 1280x720x24
+#
+# Script argument below is the E2E user prompt (fixed here; override by changing this line or the script).
 export PYTHONUNBUFFERED=1
 export DREAMAI_VNC_TEST=4
 [ -n "${DREAMAI_VNC_SCENE:-}" ] && echo "Scene: ${DREAMAI_VNC_SCENE}"
+[ -n "${GEMINI_API_KEY:-}${GOOGLE_API_KEY:-}" ] && echo "API key set (LLM enabled)."
 echo "Starting Python controller (watch for [run_proc_test] messages below)..."
 python dreamai/scripts/run_llm_house_e2e.py "I want a big house with 12 rooms"

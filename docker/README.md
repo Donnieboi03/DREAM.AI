@@ -12,17 +12,50 @@ Use the **project root** as the folder that contains `dreamai/` and `docker/` (o
 
 **Build the testing image** from the **repo root**:
 
-```bash
-docker build -f docker/Dockerfile.testing -t my-ai2thor-image .
-```
-
-On **Apple Silicon (M1/M2/M3)** use the amd64 platform:
+- **Apple Silicon (M1/M2/M3):** use `--platform=linux/amd64`:
 
 ```bash
 docker build --platform=linux/amd64 -f docker/Dockerfile.testing -t my-ai2thor-image .
 ```
 
-Then run a container from `my-ai2thor-image` (e.g. with the same entrypoint as the main Dockerfile, or override for running pytest). Rebuild when you change `Dockerfile.testing` or `dreamai/requirements.txt`.
+- **Linux / Windows (x86_64):** no platform flag needed:
+
+```bash
+docker build -f docker/Dockerfile.testing -t my-ai2thor-image .
+```
+
+**Run the testing container** from the **repo root** (repo is mounted so the E2E script runs):
+
+- **Apple Silicon (M1/M2/M3):** use `--platform=linux/amd64` so the THOR Unity player runs correctly:
+
+```bash
+docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/dreamai \
+  -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
+  --platform=linux/amd64 \
+  my-ai2thor-image
+```
+
+- **Linux / Windows (x86_64):** no platform flag needed:
+
+```bash
+docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/dreamai \
+  -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
+  my-ai2thor-image
+```
+
+You can pass `GOOGLE_API_KEY` instead of `GEMINI_API_KEY`; the E2E script uses either for the Orchestrator and Scene generator LLMs. If you have a `.env` in the repo root with the key, mounting the repo (`-v "$(pwd)":/dreamai`) makes it available and `start_vnc.sh` loads it—or pass `-e GEMINI_API_KEY=...` to override.
+
+**Parameters passed to the container (env vars):**
+
+| Env var | Purpose |
+|--------|--------|
+| `GEMINI_API_KEY` or `GOOGLE_API_KEY` | Used by the E2E script for LLM calls (Orchestrator + Scene generator). Omit or use `--no-llm` in the script to skip LLM. |
+| `DREAMAI_VNC_SCENE` | Scene name (e.g. `FloorPlan1`, `FloorPlan201`) if the controller uses it. |
+| `SCREEN_RESOLUTION` | Xvfb resolution; default `1280x720x24`. |
+
+The E2E prompt (e.g. "I want a big house with 12 rooms") is currently fixed in `docker/start_vnc.sh`; edit that line to change the user prompt.
+
+Rebuild when you change `Dockerfile.testing` or `dreamai/requirements.txt`.
 
 ---
 

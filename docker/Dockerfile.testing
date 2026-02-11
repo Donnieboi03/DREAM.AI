@@ -45,10 +45,10 @@ RUN git clone https://github.com/allenai/procthor.git /procthor \
  && pip install --no-cache-dir -e /procthor
 
 
-# VNC server entrypoint
-COPY start_vnc.sh /dreamai/start_vnc.sh
-RUN sed -i 's/\r$//' /dreamai/start_vnc.sh \
- && chmod +x /dreamai/start_vnc.sh
+# VNC server entrypoint (must live in docker/ so start_vnc.sh's ROOT=dirname/.. is repo root)
+COPY docker/start_vnc.sh /dreamai/docker/start_vnc.sh
+RUN sed -i 's/\r$//' /dreamai/docker/start_vnc.sh \
+ && chmod +x /dreamai/docker/start_vnc.sh
 
 EXPOSE 5900 6080
-CMD ["bash", "-lc", "/dreamai/start_vnc.sh"]
+CMD ["bash", "-lc", "/dreamai/docker/start_vnc.sh"]

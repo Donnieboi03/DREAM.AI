@@ -77,7 +77,7 @@ def run_workflow(
     controller = Controller(
         #branch="main",
         agentMode="default",
-        platform="Linux64",
+        quality="High",
         visibilityDistance=1.5,
         width=width,
         height=height,
@@ -113,7 +113,7 @@ def run_workflow(
         obs, info = env.reset()
         assert obs is not None
         print("\n" + "=" * 60)
-        print("KEYBOARD: W/S/A/D move, Q/E look up/down, X quit")
+        print("KEYBOARD: W/S/A/D move, Q/E look up/down, P pick up, L drop, T toggle, X quit")
         print("=" * 60)
         if use_global_keys:
             print("Global keys: focus the sim window; WASD/QE/X still work.")

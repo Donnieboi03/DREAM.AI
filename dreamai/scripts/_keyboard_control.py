@@ -9,8 +9,8 @@ Supports two modes:
 
 Notes:
 - We normalize keys to lowercase so Shift/CapsLock doesn't break controls.
-- Object actions (Pickup/Open/Toggle/etc.) automatically detect and interact with
-  the closest visible object in front of the agent.
+- Object actions (Pickup/Drop/Toggle) automatically detect and interact with
+  the closest visible object in front of the agent. P=pick up, L=drop, T=toggle.
 """
 
 from __future__ import annotations
@@ -97,6 +97,43 @@ def _get_closest_pickable_object(event_metadata: dict, debug: bool = False) -> s
         print(f"[DEBUG] All strategies failed - no visible objects found")
     return None
 
+
+def _get_closest_toggleable_object(event_metadata: dict, debug: bool = False) -> tuple[str | None, bool]:
+    """Get the objectId of the closest visible toggleable object and whether it is currently on.
+
+    Returns:
+        (objectId, is_toggled_on): objectId or None, and if the object is currently on (for calling ToggleObjectOff vs ToggleObjectOn).
+    """
+    interactable_ids = event_metadata.get("interactableObjectIds", [])
+    objects = event_metadata.get("objects", [])
+
+    if debug:
+        print(f"\n[DEBUG] ===== TOGGLE DEBUG INFO =====")
+        print(f"[DEBUG] interactableObjectIds: {interactable_ids}")
+        print(f"[DEBUG] Total objects: {len(objects)}")
+
+    # Prefer visible toggleable objects (e.g. lights, appliances)
+    toggleable_visible = [
+        obj for obj in objects
+        if obj.get("visible", False) and obj.get("toggleable", False)
+    ]
+    if toggleable_visible:
+        obj = toggleable_visible[0]
+        obj_id = obj.get("objectId")
+        is_on = obj.get("isToggled", False)
+        if debug:
+            print(f"[DEBUG] Closest toggleable: {obj_id} isToggled={is_on}")
+        return (obj_id, is_on)
+
+    # Fallback: interactable and visible
+    if interactable_ids and objects:
+        for o in objects:
+            if o.get("objectId") in interactable_ids and o.get("visible", False):
+                return (o.get("objectId"), o.get("isToggled", False))
+
+    return (None, False)
+
+
 # Map keyboard keys -> discrete action IDs (must align with THOR_DISCRETE_ACTIONS indices)
 KEY_ACTIONS = {
     "w": 0,  # MoveAhead
@@ -107,6 +144,7 @@ KEY_ACTIONS = {
     "e": 5,  # LookDown
     "p": 6,  # PickupObject
     "l": 7,  # DropHandObject
+    "t": 8,  # ToggleObjectOn (handled specially: we use On/Off based on object state)
 }
 
 # Quit keys (we normalize input to lowercase, so only include lowercase)
@@ -224,7 +262,7 @@ def run_keyboard_loop(
             # Handle object-based actions that require objectId or have special handling
             if action_name == "PickupObject":
                 # Get the closest interactable object
-                closest_obj = _get_closest_pickable_object(controller.last_event.metadata, debug=True)
+                closest_obj = _get_closest_pickable_object(controller.last_event.metadata, debug=debug_keys)
                 if closest_obj:
                     print(f"[pickup] Attempting to pickup: {closest_obj}")
                     try:
@@ -238,6 +276,24 @@ def run_keyboard_loop(
                         continue
                 else:
                     print(f"[pickup] No objects found to pick up")
+                    continue
+            elif action_name == "ToggleObjectOn":
+                # Toggle: use closest toggleable object and call On or Off based on current state
+                closest_obj, is_on = _get_closest_toggleable_object(controller.last_event.metadata, debug=debug_keys)
+                if closest_obj:
+                    toggle_action = "ToggleObjectOff" if is_on else "ToggleObjectOn"
+                    print(f"[toggle] {toggle_action} on {closest_obj}")
+                    try:
+                        event = controller.step(action=toggle_action, objectId=closest_obj)
+                        success = event.metadata.get("lastActionSuccess", False)
+                        if not success:
+                            error_msg = event.metadata.get("errorMessage", "Unknown error")
+                            print(f"[toggle] Failed: {error_msg}")
+                    except Exception as e:
+                        print(f"[toggle] Error: {e}")
+                        continue
+                else:
+                    print(f"[toggle] No toggleable object in view")
                     continue
             elif action_name == "DropHandObject":
                 print(f"[drop] Attempting to drop held object")

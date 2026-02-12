@@ -7,14 +7,7 @@ UserSettings/
 .plastic/
 *.csproj
 *.sln
+__pycache__/
+.vscode/
 .dream
 .env
-dreamvenv/
-venv/
-env/
-__pycache__/
-*.pyc
-.pytest_cache/
-.DS_Store
-DREAM.AI/
-.git/

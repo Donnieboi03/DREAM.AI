@@ -1,0 +1,92 @@
+{
+  "house_edit_request": {
+    "object_edits": [
+      {
+        "action": "add",
+        "object_id": null,
+        "asset_id": "Sofa_1",
+        "room_id": "room|2",
+        "position": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 4.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 90.0,
+          "z": 0.0
+        }
+      },
+      {
+        "action": "add",
+        "object_id": null,
+        "asset_id": "Table_1",
+        "room_id": "room|2",
+        "position": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 3.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "action": "add",
+        "object_id": null,
+        "asset_id": "TV_1",
+        "room_id": "room|2",
+        "position": {
+          "x": 0.5,
+          "y": 1.0,
+          "z": 2.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "action": "add",
+        "object_id": null,
+        "asset_id": "Lamp_1",
+        "room_id": "room|2",
+        "position": {
+          "x": 2.0,
+          "y": 0.0,
+          "z": 4.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "action": "add",
+        "object_id": null,
+        "asset_id": "HousePlant_1",
+        "room_id": "room|2",
+        "position": {
+          "x": 2.5,
+          "y": 0.0,
+          "z": 3.5
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      }
+    ]
+  },
+  "env_augment_spec": {
+    "seed_base": null,
+    "seed_min": 0,
+    "seed_max": 1000,
+    "lighting_variants": null
+  }
+}

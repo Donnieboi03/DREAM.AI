@@ -1,3 +1,8 @@
 {
+<<<<<<< HEAD
     "git.ignoreLimitWarning": true
+=======
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
+>>>>>>> 67787af (Revised LLM Generation and Resorted to Pre-Built Floorplans)
 }

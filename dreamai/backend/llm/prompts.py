@@ -13,7 +13,7 @@ Guidelines:
 """
 
 ORCHESTRATOR_SYSTEM_ROOM_SPEC = """
-- room_spec_id: optional. Use to request a house layout for procedural generation. Use one of: {room_spec_ids}. Prefer a best-matching layout when the user asks for size or room count (e.g. "big house" or "many rooms" -> 12-room or 8-room-3-bed; "kitchen and living room" -> kitchen-living-room; "2 bed 1 bath" -> 2-bed-1-bath). If no layout fits well, leave null.
+- room_spec_id: optional. Use to request a house layout. Use one of: {room_spec_ids}. Match the user's wording: "4 bedroom" or "4 bed room" -> 4-room; "5 room" -> 5-room; "8 room" -> 8-room-3-bed; "12 room" or "many rooms" -> 12-room. "2 bed 1 bath" -> 2-bed-1-bath; "kitchen and living room" -> kitchen-living-room. If no layout fits, leave null.
 """
 
 # Backward compatibility: default system without room_spec list (call get_orchestrator_system() for full prompt).

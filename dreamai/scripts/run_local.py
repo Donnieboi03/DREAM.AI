@@ -1,5 +1,9 @@
-#!/usr/bin/env python3
-"""Run DreamAI locally."""
+from ai2thor.controller import Controller
 
-if __name__ == "__main__":
-    pass
+controller = Controller()
+
+# Get all available iTHOR scenes
+all_scenes = controller.ithor_scenes()
+
+for scene in all_scenes:
+    print(scene)

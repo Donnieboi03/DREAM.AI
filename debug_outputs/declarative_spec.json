@@ -1,0 +1,12 @@
+{
+  "goal_type": "navigation",
+  "room_preferences": [
+    "Kitchen",
+    "LivingRoom"
+  ],
+  "object_requests": null,
+  "task_focus": null,
+  "constraints": null,
+  "style": null,
+  "room_spec_id": "kitchen-living-room"
+}

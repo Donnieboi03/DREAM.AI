@@ -41,8 +41,8 @@ RUN pip install --no-cache-dir --upgrade pip \
  && pip install -r /dreamai/dreamai/requirements.txt
 
 # Install ProcTHOR from official repo (absolute path)
-RUN git clone https://github.com/allenai/procthor.git /procthor \
- && pip install --no-cache-dir -e /procthor
+#RUN git clone https://github.com/allenai/procthor.git /procthor \
+ #&& pip install --no-cache-dir -e /procthor
 
 
 # VNC server entrypoint (must live in docker/ so start_vnc.sh's ROOT=dirname/.. is repo root)

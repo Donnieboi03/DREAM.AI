@@ -142,8 +142,9 @@ def run_workflow(
     # Match run_proc_test: do not pass scene=house_dict (not supported on all builds).
     # Create controller with no scene so it picks a default, then load house via CreateHouse.
     controller = Controller(
-        branch="main",
+        #branch="main",
         agentMode="default",
+        platform="Linux64",
         visibilityDistance=1.5,
         width=width,
         height=height,

@@ -9,8 +9,8 @@ Supports two modes:
 
 Notes:
 - We normalize keys to lowercase so Shift/CapsLock doesn't break controls.
-- Object actions (Pickup/Open/Toggle/etc.) typically require objectId; this loop is
-  navigation-only unless you extend it with object selection logic.
+- Object actions (Pickup/Open/Toggle/etc.) automatically detect and interact with
+  the closest visible object in front of the agent.
 """
 
 from __future__ import annotations
@@ -24,6 +24,79 @@ from typing import Any, Callable, Optional
 
 from dreamai.scripts.actions import THOR_DISCRETE_ACTIONS
 
+
+def _get_closest_pickable_object(event_metadata: dict, debug: bool = False) -> str | None:
+    """Get the objectId of the closest visible, pickable object.
+    
+    Tries multiple strategies:
+    1. interactableObjectIds (AI2-THOR marked interactive)
+    2. Visible objects with pickupable property
+    3. Any visible object
+    """
+    interactable_ids = event_metadata.get("interactableObjectIds", [])
+    objects = event_metadata.get("objects", [])
+    
+    if debug:
+        print(f"\n[DEBUG] ===== PICKUP DEBUG INFO =====")
+        print(f"[DEBUG] interactableObjectIds: {interactable_ids}")
+        print(f"[DEBUG] Total objects in scene: {len(objects)}")
+        if objects:
+            visible_objs = [obj for obj in objects if obj.get("visible", False)]
+            print(f"[DEBUG] Visible objects: {len(visible_objs)}")
+            print(f"[DEBUG] First 15 objects:")
+            for i, obj in enumerate(objects[:15]):
+                obj_id = obj.get("objectId", "NO_ID")
+                visible = obj.get("visible", False)
+                obj_type = obj.get("objectType", "UNKNOWN")
+                pickupable = obj.get("pickupable", False)
+                print(f"       [{i}] {obj_id:30s} visible={visible} type={obj_type:15s} pickupable={pickupable}")
+    
+    # Strategy 1: Use interactableObjectIds if available
+    if interactable_ids:
+        visible_interactable = [
+            obj for obj in objects 
+            if obj.get("objectId") in interactable_ids and obj.get("visible", False)
+        ]
+        if visible_interactable:
+            closest = visible_interactable[0].get("objectId")
+            if debug:
+                print(f"[DEBUG] Strategy 1: Returning interactable object: {closest}")
+            return closest
+        # Fallback to first interactable even if not visible
+        if debug:
+            print(f"[DEBUG] Strategy 1 - returning first interactable (not visible): {interactable_ids[0]}")
+        return interactable_ids[0]
+    
+    # Strategy 2: Look for visible pickupable objects
+    if debug:
+        print(f"[DEBUG] Strategy 1 failed - trying visible pickupable objects...")
+    
+    pickupable_visible = [
+        obj for obj in objects
+        if obj.get("visible", False) and obj.get("pickupable", False)
+    ]
+    
+    if pickupable_visible:
+        closest = pickupable_visible[0].get("objectId")
+        if debug:
+            print(f"[DEBUG] Strategy 2: Found visible pickupable: {closest}")
+        return closest
+    
+    # Strategy 3: Just try the closest visible object (any type)
+    if debug:
+        print(f"[DEBUG] Strategy 2 failed - trying any visible object...")
+    
+    visible_objs = [obj for obj in objects if obj.get("visible", False)]
+    if visible_objs:
+        closest = visible_objs[0].get("objectId")
+        if debug:
+            print(f"[DEBUG] Strategy 3: Trying closest visible object: {closest}")
+        return closest
+    
+    if debug:
+        print(f"[DEBUG] All strategies failed - no visible objects found")
+    return None
+
 # Map keyboard keys -> discrete action IDs (must align with THOR_DISCRETE_ACTIONS indices)
 KEY_ACTIONS = {
     "w": 0,  # MoveAhead
@@ -32,6 +105,8 @@ KEY_ACTIONS = {
     "d": 3,  # RotateRight
     "q": 4,  # LookUp
     "e": 5,  # LookDown
+    "p": 6,  # PickupObject
+    "l": 7,  # DropHandObject
 }
 
 # Quit keys (we normalize input to lowercase, so only include lowercase)
@@ -146,9 +221,40 @@ def run_keyboard_loop(
 
             action_name = THOR_DISCRETE_ACTIONS[action_id]
 
-            event = controller.step(action=action_name)
+            # Handle object-based actions that require objectId or have special handling
+            if action_name == "PickupObject":
+                # Get the closest interactable object
+                closest_obj = _get_closest_pickable_object(controller.last_event.metadata, debug=True)
+                if closest_obj:
+                    print(f"[pickup] Attempting to pickup: {closest_obj}")
+                    try:
+                        event = controller.step(action=action_name, objectId=closest_obj)
+                        success = event.metadata.get("lastActionSuccess", False)
+                        if not success:
+                            error_msg = event.metadata.get("errorMessage", "Unknown error")
+                            print(f"[pickup] Failed: {error_msg}")
+                    except Exception as e:
+                        print(f"[pickup] Error: {e}")
+                        continue
+                else:
+                    print(f"[pickup] No objects found to pick up")
+                    continue
+            elif action_name == "DropHandObject":
+                print(f"[drop] Attempting to drop held object")
+                try:
+                    event = controller.step(action=action_name, forceAction=True)
+                    success = event.metadata.get("lastActionSuccess", False)
+                    if not success:
+                        error_msg = event.metadata.get("errorMessage", "Unknown error")
+                        print(f"[drop] Failed: {error_msg}")
+                except Exception as e:
+                    print(f"[drop] Error: {e}")
+                    continue
+            else:
+                event = controller.step(action=action_name)
+                success = event.metadata.get("lastActionSuccess", False)
+            
             controller.step("Pass")
-            success = event.metadata.get("lastActionSuccess", False)
 
             agent = event.metadata.get("agent", {}) or {}
             pos = agent.get("position", {}) or {}

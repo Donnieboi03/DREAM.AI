@@ -253,6 +253,7 @@ def run_demo(
     index=None,
     random_house=False,
     dataset_seed=None,
+    physics_scene=None,
     fullscreen=True,
     use_global_keys=True,
     width=800,
@@ -325,8 +326,24 @@ def run_demo(
         pos = (agent.get("position") or {})
         _log(f"[run_proc_test] Agent spawn: ({pos.get('x')}, {pos.get('y')}, {pos.get('z')})")
 
+    # --- Physics scene mode (built-in iTHOR scenes) ---
+    if physics_scene is not None:
+        _log(f"[run_proc_test] Loading physics scene: {physics_scene!r}")
+        controller = Controller(
+            agentMode="default",
+            visibilityDistance=1.5,
+            scene=physics_scene,
+            width=width,
+            height=height,
+            fullscreen=fullscreen,
+            snapToGrid=True,
+            gridSize=0.25,
+            rotateStepDegrees=90.0,
+        )
+        source = f"{physics_scene} (physics scene)"
+    
     # --- VNC diagnostic: built-in iTHOR scene ---
-    if os.environ.get("DREAMAI_VNC_TEST"):
+    if controller is None and os.environ.get("DREAMAI_VNC_TEST"):
         vnc_scene = os.environ.get("DREAMAI_VNC_SCENE", "FloorPlan1").strip() or "FloorPlan1"
         _log(f"[run_proc_test] DREAMAI_VNC_TEST=1: using built-in scene {vnc_scene!r}.")
         controller = Controller(
@@ -388,7 +405,9 @@ def run_demo(
         _create_house_and_spawn(controller, house_data)
 
     if source:
-        _log(f"Source: {source}")
+        _log(f"\n" + "=" * 60)
+        _log(f"SCENE SOURCE: {source}")
+        _log("=" * 60 + "\n")
 
     _log("[run_proc_test] Sending first step (RotateRight) to confirm scene is live...")
     try:
@@ -403,10 +422,10 @@ def run_demo(
         raise
 
     print("\n" + "=" * 60)
-    print("KEYBOARD: W/S/A/D move, Q/E look up/down, X quit")
+    print("KEYBOARD: W/S/A/D move, Q/E look up/down, P pickup, L drop, X quit")
     print("=" * 60)
     if use_global_keys:
-        print("Global keys: focus the sim window; WASD/QE/X still work.")
+        print("Global keys: focus the sim window; WASD/QE/PL/X still work.")
     else:
         print("Terminal mode: keep this terminal focused.")
     print("(Spinning cursor on macOS: try --no-fullscreen.)\n")
@@ -491,6 +510,13 @@ def main():
         metavar="N",
         help="With --print-example: truncate objects list to N entries for readability",
     )
+    parser.add_argument(
+        "--physics-scene",
+        type=str,
+        default=None,
+        metavar="SCENE",
+        help="Load a built-in physics scene (e.g. FloorPlan1, FloorPlan2, etc.) instead of ProcTHOR-10K",
+    )
     args = parser.parse_args()
 
     if args.print_schema:
@@ -514,6 +540,7 @@ def main():
         index=args.index,
         random_house=args.random,
         dataset_seed=args.seed if args.random else None,
+        physics_scene=args.physics_scene,
         fullscreen=not args.no_fullscreen,
         use_global_keys=not args.terminal,
         width=args.width,

@@ -264,27 +264,6 @@
         
         <div id="controlPanel">
             <div class="control-section">
-                <div class="section-title">Scene Selection</div>
-                <div class="button-grid full">
-                    <select id="sceneSelect">
-                        <option value="FloorPlan1">FloorPlan1</option>
-                        <option value="FloorPlan2">FloorPlan2</option>
-                        <option value="FloorPlan201">FloorPlan201</option>
-                        <option value="FloorPlan202">FloorPlan202</option>
-                        <option value="FloorPlan203">FloorPlan203</option>
-                        <option value="FloorPlan204">FloorPlan204</option>
-                        <option value="FloorPlan205">FloorPlan205</option>
-                        <option value="FloorPlan206">FloorPlan206</option>
-                        <option value="FloorPlan207">FloorPlan207</option>
-                        <option value="FloorPlan208">FloorPlan208</option>
-                        <option value="FloorPlan209">FloorPlan209</option>
-                        <option value="FloorPlan210">FloorPlan210</option>
-                    </select>
-                    <button onclick="loadScene()" style="margin-top: 8px;">📂 Load Scene</button>
-                </div>
-            </div>
-            
-            <div class="control-section">
                 <div class="section-title">Mouse Controls</div>
                 <div class="button-grid">
                     <button onclick="sendAction(6)">🔍 Pickup</button>
@@ -315,6 +294,7 @@
     <script>
         const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${wsProtocol}//localhost:8000/ws/game`;
+        const apiBaseUrl = "http://localhost:8000";
 
         console.log("WebSocket URL:", wsUrl);
 
@@ -324,12 +304,41 @@
         const keysPressed = {};
 
         // Prompt box handlers
-        document.getElementById('submitPromptBtn').addEventListener('click', function() {
+        document.getElementById('submitPromptBtn').addEventListener('click', async function() {
             const prompt = document.getElementById('promptInput').value;
             if (prompt.trim()) {
-                console.log("Submitting prompt:", prompt);
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: "prompt", text: prompt }));
+                console.log("[Pipeline] Prompt submitted:", prompt);
+                try {
+                    const response = await fetch(`${apiBaseUrl}/api/orchestrator/generate_task`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            prompt,
+                            max_steps: 500,
+                        }),
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("[Pipeline] Task and scene generated:", data);
+
+                        if (data.scene_id && ws && ws.readyState === WebSocket.OPEN) {
+                            console.log("[Pipeline] Loading scene:", data.scene_id);
+                            ws.send(JSON.stringify({ type: "load_scene", scene: data.scene_id }));
+                        } else {
+                            console.warn("[Pipeline] No scene_id returned or WebSocket not ready");
+                        }
+                    } else {
+                        const errorData = await response.json().catch(() => ({}));
+                        console.error(
+                            "Failed to generate task:",
+                            errorData.detail || response.statusText
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error submitting prompt:", error);
                 }
                 document.getElementById('promptInput').value = '';
             }
@@ -468,14 +477,6 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 console.log("Sending reset");
                 ws.send(JSON.stringify({ type: "reset" }));
-            }
-        }
-        
-        function loadScene() {
-            const sceneName = document.getElementById('sceneSelect').value;
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                console.log("Loading scene:", sceneName);
-                ws.send(JSON.stringify({ type: "load_scene", scene: sceneName }));
             }
         }
         

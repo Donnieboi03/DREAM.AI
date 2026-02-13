@@ -147,6 +147,61 @@ class GameStreamManager:
             "initial_metrics": self.current_metrics,
         }
 
+    async def handle_load_scene_dict(self, scene_data: dict) -> dict:
+        """
+        Load a scene from an edited house dict (e.g., from LLM-generated scene).
+        
+        Expected scene_data format:
+        {
+            "scene_dict": {house dict from apply_edits},
+            "task_description": "Optional task description"
+        }
+        
+        Returns initial observation and metrics for the new scene.
+        """
+        scene_dict = scene_data.get("scene_dict")
+        task_description = scene_data.get("task_description", "")
+        
+        if not scene_dict:
+            return {"error": "No scene_dict provided"}
+        
+        try:
+            from ai2thor.controller import Controller
+            
+            # Close the current environment's controller
+            if self.env._controller:
+                self.env._controller.stop()
+            
+            # Create new controller with the edited house
+            new_controller = Controller(scene=scene_dict)
+            
+            # Update the environment's controller
+            self.env._controller = new_controller
+            self.env._last_event = None
+            
+            # Reset metrics for new scene
+            self.current_metrics = {
+                "agent_position": None,
+                "agent_rotation": None,
+                "episode_reward": 0.0,
+                "step_count": 0,
+                "last_action_success": True,
+            }
+            
+            print(f"[WebSocket] Scene loaded: {task_description or 'LLM-generated scene'}")
+            
+            return {
+                "success": True,
+                "message": "Scene loaded successfully",
+                "task_description": task_description,
+            }
+        except Exception as e:
+            print(f"[WebSocket] Error loading scene dict: {e}")
+            return {
+                "success": False,
+                "error": f"Failed to load scene: {str(e)}",
+            }
+
     async def stream_frames(self, target_fps: int = 60):
         """Continuous frame streaming loop."""
         self.streaming = True

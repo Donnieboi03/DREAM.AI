@@ -1,8 +1,11 @@
 """Task orchestration for prompt-based environment control."""
 
-from typing import Optional
+from typing import Optional, Any
 from pydantic import BaseModel, Field
 from ..schemas import TaskSpec
+from ..llm.pipeline import run_orchestrator_llm, get_api_key
+from ..api.runtime_state import get_scene_names
+from envs.ai2thor.procthor_adapter import get_builtin_scene_for_spec
 
 
 class TaskGenerationRequest(BaseModel):
@@ -21,6 +24,9 @@ class TaskGenerationResponse(BaseModel):
     task: TaskSpec
     scene_id: str
     message: str
+    scene_dict: Optional[dict[str, Any]] = Field(
+        None, description="Edited house dict for Controller(scene=...)"
+    )
 
 
 async def generate_task_from_prompt(
@@ -29,14 +35,12 @@ async def generate_task_from_prompt(
     max_steps: int = 500,
 ) -> TaskGenerationResponse:
     """
-    Generate a task specification from a natural language prompt.
+    Generate a task specification and pick a built-in scene from a natural language prompt.
     
-    For now, this is a basic implementation that creates a TaskSpec
-    from the prompt. In a full implementation, this would:
-    1. Use LLM (e.g., Gemini via backend/llm/) to parse the prompt
-    2. Extract objectives, success criteria, subtasks
-    3. Generate reward shaping rules
-    4. Handle scene generation/selection
+    Pipeline:
+    1. Use Orchestrator LLM to parse prompt -> DeclarativeSpec
+    2. Use ProcTHOR adapter to select a built-in scene from DeclarativeSpec
+    3. Extract TaskSpec from DeclarativeSpec
     
     Args:
         prompt: Natural language description of the task
@@ -44,30 +48,72 @@ async def generate_task_from_prompt(
         max_steps: Maximum steps allowed for the episode
     
     Returns:
-        TaskGenerationResponse with generated TaskSpec
+        TaskGenerationResponse with generated TaskSpec and scene_dict
     """
     
-    # TODO: Integrate with backend/llm/ to process prompt via LLM
-    # For now, create a basic task from the prompt
+    if not get_api_key():
+        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY not set")
     
-    task = TaskSpec(
-        description=prompt,
-        goal=f"Complete the following: {prompt}",
-        success_criteria=[
-            "Agent completes the described task",
-            "Task completed within step limit",
-        ],
-        max_steps=max_steps,
-        subtasks=[],
-    )
+    try:
+        # Step 1: Run Orchestrator LLM to get DeclarativeSpec
+        print(f"[Pipeline] Processing prompt: {prompt[:80]}...")
+        declarative_spec = run_orchestrator_llm(prompt)
+        print(
+            "[Pipeline] DeclarativeSpec: goal_type=%r room_spec_id=%r room_preferences=%r object_requests=%r"
+            % (
+                declarative_spec.goal_type,
+                declarative_spec.room_spec_id,
+                declarative_spec.room_preferences,
+                declarative_spec.object_requests,
+            )
+        )
+        
+        # Step 2: Select a built-in iTHOR scene based on DeclarativeSpec
+        scene_names = get_scene_names()
+        scene_name = get_builtin_scene_for_spec(
+            room_spec_id=declarative_spec.room_spec_id,
+            room_preferences=declarative_spec.room_preferences,
+            scene_names=scene_names,
+        )
+        print(f"[Pipeline] Selected built-in scene: {scene_name}")
+        
+        # Step 3: Create TaskSpec from DeclarativeSpec
+        success_criteria = []
+        
+        # Build success criteria from DeclarativeSpec
+        if declarative_spec.task_focus:
+            success_criteria.append(f"Complete: {declarative_spec.task_focus}")
+        else:
+            success_criteria.append("Agent completes the described task")
+        
+        if declarative_spec.object_requests:
+            success_criteria.append(f"Interact with requested objects: {', '.join(declarative_spec.object_requests)}")
+        
+        success_criteria.append("Task completed within step limit")
+        
+        # Build goal description
+        goal = prompt if prompt else f"Complete task: {declarative_spec.task_focus or 'Unknown'}"
+        
+        task = TaskSpec(
+            description=prompt,
+            goal=goal,
+            success_criteria=success_criteria,
+            max_steps=max_steps,
+            subtasks=[],
+        )
+        
+        scene_id = scene_id or scene_name
+        
+        return TaskGenerationResponse(
+            task=task,
+            scene_id=scene_id,
+            message=f"Task generated from prompt; selected scene: {scene_id}",
+            scene_dict=None,
+        )
     
-    scene_id = scene_id or "auto_generated"
-    
-    return TaskGenerationResponse(
-        task=task,
-        scene_id=scene_id,
-        message=f"Task generated from prompt: {prompt[:50]}...",
-    )
+    except Exception as e:
+        print(f"[Task Generator] Error: {e}")
+        raise ValueError(f"Failed to generate task: {e}")
 
 
 async def evaluate_episode(
@@ -80,17 +126,28 @@ async def evaluate_episode(
         episode_data: Episode stats including reward, steps, success
     
     Returns:
-        Evaluation results and feedback
+        Evaluation results with efficiency and success metrics
     """
-    
-    reward = episode_data.get("total_reward", 0)
+    total_reward = episode_data.get("total_reward", 0.0)
     steps = episode_data.get("steps", 0)
+    max_steps = episode_data.get("max_steps", 500)
     success = episode_data.get("success", False)
+    
+    # Calculate efficiency (reward per step, normalized)
+    reward_per_step = total_reward / steps if steps > 0 else 0.0
+    efficiency = 1.0 - (steps / max_steps) if max_steps > 0 else 0.0
+    efficiency = max(0.0, efficiency)  # Clamp to [0, 1]
     
     return {
         "success": success,
-        "total_reward": reward,
+        "total_reward": total_reward,
         "steps": steps,
-        "reward_per_step": reward / steps if steps > 0 else 0,
-        "efficiency": steps / episode_data.get("max_steps", 500),
+        "max_steps": max_steps,
+        "reward_per_step": reward_per_step,
+        "efficiency": efficiency,
+        "evaluation_summary": (
+            f"Episode {'succeeded' if success else 'failed'}: "
+            f"{total_reward:.2f} reward in {steps}/{max_steps} steps "
+            f"(efficiency: {efficiency:.2%})"
+        ),
     }

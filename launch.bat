@@ -20,9 +20,9 @@ if !errorlevel! equ 0 (
     docker-compose up -d
     cd ..
     echo.
-    echo ✓ Backend started! Opening browser...
+    echo ✓ Backend started at http://localhost:8000
     echo.
-    echo Starting HTTP server on port 8888...
+    echo Starting HTTP server on port 8888 for static files...
     echo.
     start http://localhost:8888/test_websocket.html
     python -m http.server 8888 --directory .

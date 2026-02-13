@@ -54,6 +54,9 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy application code
 COPY ../dreamai/ /dreamai/
 
+# Set PYTHONPATH so both top-level modules and dreamai.* imports resolve
+ENV PYTHONPATH=/dreamai:/
+
 # Expose FastAPI port (default 8000)
 EXPOSE 8000
 

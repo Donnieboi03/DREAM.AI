@@ -157,6 +157,41 @@ export const ActionPanel: React.FC<ActionPanelProps> = ({ onAction }) => {
   );
 };
 
+interface TaskDisplayProps {
+  task: {
+    description: string;
+    goal: string;
+    success_criteria: string[];
+    max_steps: number;
+  };
+}
+
+export const TaskDisplay: React.FC<TaskDisplayProps> = ({ task }) => {
+  return (
+    <div style={styles.taskContainer}>
+      <div style={styles.taskTitle}>📋 Current Task</div>
+      <div style={styles.taskSection}>
+        <div style={styles.taskSectionLabel}>Goal:</div>
+        <div style={styles.taskContent}>{task.goal}</div>
+      </div>
+      <div style={styles.taskSection}>
+        <div style={styles.taskSectionLabel}>Success Criteria:</div>
+        <ul style={styles.criteriaList}>
+          {task.success_criteria.map((criteria, idx) => (
+            <li key={idx} style={styles.criteriaItem}>
+              {criteria}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div style={styles.taskSection}>
+        <div style={styles.taskSectionLabel}>Max Steps:</div>
+        <div style={styles.taskContent}>{task.max_steps}</div>
+      </div>
+    </div>
+  );
+};
+
 const styles = {
   container: {
     display: "flex",
@@ -246,10 +281,51 @@ const styles = {
     fontWeight: "bold" as const,
     transition: "background-color 0.2s",
   },
+  taskContainer: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "12px",
+    padding: "15px",
+    backgroundColor: "rgba(4, 212, 121, 0.1)",
+    borderRadius: "8px",
+    border: "2px solid #04d479",
+  },
+  taskTitle: {
+    fontSize: "14px",
+    fontWeight: "bold" as const,
+    color: "#04d479",
+  },
+  taskSection: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "6px",
+  },
+  taskSectionLabel: {
+    fontSize: "12px",
+    fontWeight: "bold" as const,
+    color: "#b0b0b0",
+    textTransform: "uppercase" as const,
+  },
+  taskContent: {
+    fontSize: "13px",
+    color: "#e0e0e0",
+    lineHeight: "1.4",
+  },
+  criteriaList: {
+    margin: "0",
+    paddingLeft: "20px",
+    fontSize: "13px",
+    color: "#e0e0e0",
+    lineHeight: "1.5",
+  },
+  criteriaItem: {
+    marginBottom: "6px",
+  },
 };
 
 export default {
   PromptBox,
   MetricsDisplay,
   ActionPanel,
+  TaskDisplay,
 };

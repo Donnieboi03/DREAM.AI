@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from .websocket_stream import GameStreamManager
+from .runtime_state import set_game_env
 from .orchestrator_routes import router as orchestrator_router
 
 # Import from DREAM.AI modules (PYTHONPATH set in Dockerfile)
@@ -29,6 +30,7 @@ async def lifespan(app: FastAPI):
     # Initialize ProcTHOR environment
     try:
         game_env = make_procthor_env()
+        set_game_env(game_env)
         stream_manager = GameStreamManager(game_env)
         print("Environment initialized successfully")
     except Exception as e:
@@ -163,6 +165,17 @@ async def websocket_game_endpoint(websocket: WebSocket):
                 except Exception as e:
                     print(f"✗ Failed to load scene {scene_name}: {e}")
                     await websocket.send_json({"type": "error", "message": f"Failed to load scene: {e}"})
+            
+            elif message_type == "load_scene_dict":
+                # Load a scene from an LLM-generated edited house dict
+                result = await stream_manager.handle_load_scene_dict(data)
+                if result.get("success"):
+                    # Send initial frame from new scene
+                    observation, info = game_env.reset()
+                    await stream_manager.broadcast_frame(observation, stream_manager.current_metrics)
+                    await websocket.send_json({"type": "scene_dict_loaded", "data": result})
+                else:
+                    await websocket.send_json({"type": "error", "message": result.get("error", "Unknown error")})
             
             elif message_type == "start_streaming":
                 # Start continuous frame streaming (only if not already running)

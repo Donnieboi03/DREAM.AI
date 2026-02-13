@@ -43,8 +43,8 @@ COPY dreamai/ /dreamai/
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Set PYTHONPATH so imports work from /dreamai
-ENV PYTHONPATH=/dreamai:$PYTHONPATH
+# Set PYTHONPATH so both top-level modules and dreamai.* imports resolve
+ENV PYTHONPATH=/dreamai:/
 ENV DISPLAY=:99
 
 # Create non-root user for security

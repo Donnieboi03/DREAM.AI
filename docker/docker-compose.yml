@@ -11,6 +11,8 @@ services:
     container_name: dreamai-backend
     ports:
       - "8000:8000"
+    env_file:
+      - ../.env
     environment:
       - PYTHONUNBUFFERED=1
       - AI2THOR_HEADLESS=1

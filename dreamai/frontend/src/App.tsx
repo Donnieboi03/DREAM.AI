@@ -4,6 +4,7 @@ import {
   PromptBox,
   MetricsDisplay,
   ActionPanel,
+  TaskDisplay,
 } from "./components/UIOverlays";
 
 interface GameMetrics {
@@ -12,6 +13,14 @@ interface GameMetrics {
   episode_reward: number;
   step_count: number;
   last_action_success: boolean;
+}
+
+interface TaskSpec {
+  description: string;
+  goal: string;
+  success_criteria: string[];
+  max_steps: number;
+  subtasks: any[];
 }
 
 function App() {
@@ -23,6 +32,7 @@ function App() {
     last_action_success: true,
   });
   const [isProcessingTask, setIsProcessingTask] = useState(false);
+  const [currentTask, setCurrentTask] = useState<TaskSpec | null>(null);
   const gameViewportRef = useRef<any>(null);
 
   const handleMetricsUpdate = useCallback((newMetrics: GameMetrics) => {
@@ -30,6 +40,7 @@ function App() {
   }, []);
 
   const handlePromptSubmit = async (prompt: string) => {
+    console.log("[Pipeline] Prompt submitted:", prompt);
     setIsProcessingTask(true);
     try {
       // Send prompt to backend orchestrator
@@ -40,19 +51,41 @@ function App() {
         },
         body: JSON.stringify({
           prompt,
+          max_steps: 500,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Task generated:", data);
-        // Task has been processed, metrics will update via WebSocket
+        console.log("[Pipeline] Task and scene generated:", data);
+
+        // Store the task
+        if (data.task) {
+          setCurrentTask(data.task);
+        }
+
+        // Load the scene via WebSocket through GameViewport ref
+        if (data.scene_id && gameViewportRef.current) {
+          console.log("[Pipeline] Loading scene:", data.scene_id);
+          gameViewportRef.current.loadScene(data.scene_id);
+        } else {
+          console.warn("[Pipeline] No scene_id returned by backend");
+        }
       } else {
-        console.error("Failed to generate task");
+        const errorData = await response.json().catch(() => ({}));
+        console.error(
+          "Failed to generate task:",
+          errorData.detail || response.statusText
+        );
+        alert(
+          `Error: ${errorData.detail || "Failed to generate task. Check console for details."}`
+        );
       }
     } catch (error) {
       console.error("Error submitting prompt:", error);
+      alert("Error submitting prompt. Check console for details.");
     } finally {
+      console.log("[Pipeline] Prompt handling complete");
       setIsProcessingTask(false);
     }
   };
@@ -62,13 +95,20 @@ function App() {
     console.log("Action sent:", actionIndex);
   };
 
+  const handleReset = () => {
+    if (gameViewportRef.current) {
+      gameViewportRef.current.reset();
+      setCurrentTask(null);
+    }
+  };
+
   return (
     <div style={styles.app}>
       {/* Header */}
       <header style={styles.header}>
         <h1>DREAM.AI - ProcTHOR Control Panel</h1>
         <p style={styles.subtitle}>
-          Real-time environment streaming and control
+          Real-time environment streaming and control with LLM-generated scenes
         </p>
       </header>
 
@@ -81,6 +121,14 @@ function App() {
             onSubmit={handlePromptSubmit}
             isLoading={isProcessingTask}
           />
+
+          {/* Task Display */}
+          {currentTask && <TaskDisplay task={currentTask} />}
+
+          {/* Reset button */}
+          <button onClick={handleReset} style={styles.resetButton}>
+            🔄 Reset Scene
+          </button>
 
           {/* Metrics display */}
           <MetricsDisplay
@@ -132,7 +180,7 @@ const styles = {
     gap: "20px",
     padding: "20px",
     flex: 1,
-    maxWidth: "1400px",
+    maxWidth: "1600px",
     margin: "0 auto",
     width: "100%",
   },
@@ -144,11 +192,26 @@ const styles = {
     maxHeight: "calc(100vh - 140px)",
     overflowY: "auto" as const,
   },
+  resetButton: {
+    padding: "10px 15px",
+    backgroundColor: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    fontSize: "14px",
+    fontWeight: "600" as const,
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    "&:hover": {
+      backgroundColor: "#dc2626",
+    },
+  },
   gameContainer: {
     flex: 1,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    minHeight: "600px",
   },
 };
 

@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
-COPY ../dreamai/requirements.txt .
+COPY ../src/requirements.txt .
 
 # Build wheels for faster installation
 RUN pip install --user --no-cache-dir --upgrade pip wheel \
@@ -40,11 +40,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfcl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /dreamai
+WORKDIR /src
 
 # Copy wheels from builder
 COPY --from=builder /build/wheels /tmp/wheels
-COPY ../dreamai/requirements.txt .
+COPY ../src/requirements.txt .
 
 # Install wheels (no index, pre-built)
 RUN pip install --no-cache-dir --upgrade pip \
@@ -52,10 +52,10 @@ RUN pip install --no-cache-dir --upgrade pip \
     && rm -rf /tmp/wheels
 
 # Copy application code
-COPY ../dreamai/ /dreamai/
+COPY ../src/ /src/
 
-# Set PYTHONPATH so both top-level modules and dreamai.* imports resolve
-ENV PYTHONPATH=/dreamai:/
+# Set PYTHONPATH so both top-level modules and src.* imports resolve
+ENV PYTHONPATH=/src:/
 
 # Expose FastAPI port (default 8000)
 EXPOSE 8000

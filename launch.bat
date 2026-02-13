@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 REM Check if container is running
-docker ps | find "dreamai-backend" >nul 2>&1
+docker ps | find "src-backend" >nul 2>&1
 if !errorlevel! equ 0 (
     echo.
     echo Stopping DREAM.AI...

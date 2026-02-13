@@ -60,7 +60,7 @@ An agentic framework for training robust RL brains in simulated environments (AI
 
 ```
 DREAM.AI/
-├── dreamai/                          # Python backend
+├── src/                          # Python backend
 │   ├── backend/
 │   │   ├── api/
 │   │   │   ├── app.py               # FastAPI application
@@ -160,12 +160,12 @@ docker-compose up -d
 - Wait 20 seconds after startup (frontend takes time to build)
 
 ### "WebSocket connection failed"
-- Check backend is up: `docker logs dreamai-backend`
+- Check backend is up: `docker logs src-backend`
 - Verify firewall allows port 8000
 - Check browser console for errors (F12 → Console)
 
 ### "Black screen / no frames"
-- Check backend logs: `docker logs dreamai-backend`
+- Check backend logs: `docker logs src-backend`
 - Verify AI2-THOR initialized: Look for "Environment initialized"
 - Try resetting environment (browser button)
 
@@ -183,12 +183,12 @@ docker-compose up -d
 ## Development
 
 ### Backend Development
-1. Edit files in `dreamai/backend/`
+1. Edit files in `src/backend/`
 2. Rebuild: `docker-compose build backend`
 3. Restart: `docker-compose restart backend`
 
 ### Frontend Development
-1. Edit files in `dreamai/frontend/`
+1. Edit files in `src/frontend/`
 2. Changes auto-reload (Vite hot module replacement)
 3. Refresh browser if needed
 
@@ -198,7 +198,7 @@ Open `test_websocket.html` in browser for a minimal test interface without the f
 ## Environment Variables
 
 Set in `docker-compose.yml`:
-- `PYTHONPATH=/dreamai` - Python path for imports
+- `PYTHONPATH=/src` - Python path for imports
 - `DISPLAY=:99` - Virtual X11 display
 - `AI2THOR_HEADLESS=1` - Headless rendering mode
 

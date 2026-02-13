@@ -2,7 +2,7 @@
 
 Run the DreamAI ProcTHOR/THOR stack in a container and view the simulation in your browser. This is the recommended way to run on **Windows**; it also works on Linux and macOS.
 
-Use the **project root** as the folder that contains `dreamai/` and `docker/` (one level up from this folder).
+Use the **project root** as the folder that contains `src/` and `docker/` (one level up from this folder).
 
 ---
 
@@ -29,7 +29,7 @@ docker build -f docker/Dockerfile.testing -t my-ai2thor-image .
 - **Apple Silicon (M1/M2/M3):** use `--platform=linux/amd64` so the THOR Unity player runs correctly:
 
 ```bash
-docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/dreamai \
+docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/src \
   -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
   --platform=linux/amd64 \
   my-ai2thor-image
@@ -38,12 +38,12 @@ docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/dreamai \
 - **Linux / Windows (x86_64):** no platform flag needed:
 
 ```bash
-docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/dreamai \
+docker run --rm -it -p 6080:6080 -p 5900:5900 -v "$(pwd)":/src \
   -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
   my-ai2thor-image
 ```
 
-You can pass `GOOGLE_API_KEY` instead of `GEMINI_API_KEY`; the E2E script uses either for the Orchestrator and Scene generator LLMs. If you have a `.env` in the repo root with the key, mounting the repo (`-v "$(pwd)":/dreamai`) makes it available and `start_vnc.sh` loads it—or pass `-e GEMINI_API_KEY=...` to override.
+You can pass `GOOGLE_API_KEY` instead of `GEMINI_API_KEY`; the E2E script uses either for the Orchestrator and Scene generator LLMs. If you have a `.env` in the repo root with the key, mounting the repo (`-v "$(pwd)":/src`) makes it available and `start_vnc.sh` loads it—or pass `-e GEMINI_API_KEY=...` to override.
 
 **Parameters passed to the container (env vars):**
 
@@ -55,7 +55,7 @@ You can pass `GOOGLE_API_KEY` instead of `GEMINI_API_KEY`; the E2E script uses e
 
 The E2E prompt (e.g. "I want a big house with 12 rooms") is currently fixed in `docker/start_vnc.sh`; edit that line to change the user prompt.
 
-Rebuild when you change `Dockerfile.testing` or `dreamai/requirements.txt`.
+Rebuild when you change `Dockerfile.testing` or `src/requirements.txt`.
 
 ---
 
@@ -64,16 +64,16 @@ Rebuild when you change `Dockerfile.testing` or `dreamai/requirements.txt`.
 From the **repo root**:
 
 ```bash
-docker build -t dreamai-thor -f docker/Dockerfile .
+docker build -t src-thor -f docker/Dockerfile .
 ```
 
 On **Apple Silicon (M1/M2/M3)** use the amd64 platform:
 
 ```bash
-docker build --platform=linux/amd64 -t dreamai-thor -f docker/Dockerfile .
+docker build --platform=linux/amd64 -t src-thor -f docker/Dockerfile .
 ```
 
-Rebuild only when you change `docker/Dockerfile` or `dreamai/requirements.txt`.
+Rebuild only when you change `docker/Dockerfile` or `src/requirements.txt`.
 
 ---
 
@@ -118,7 +118,7 @@ In the noVNC window, click the canvas to give it focus, then use **WASD** / **Q,
 
 ## If something fails
 
-- **Build fails:** Ensure Docker is installed and running. Run the build from the repo root (the folder that contains `dreamai/` and `docker/`).
+- **Build fails:** Ensure Docker is installed and running. Run the build from the repo root (the folder that contains `src/` and `docker/`).
 - **"docker: command not found" or run_vnc.py fails:** Install Docker and ensure it is on your PATH.
 - **Port already allocated:** Use `DREAMAI_VNC_WEB_PORT=6081 DREAMAI_VNC_RAW_PORT=15901` (or other free ports) when running `python docker/run_vnc.py`.
 - **Container exits immediately:** Check the terminal for Python errors. Rebuild the image if you changed the Dockerfile or requirements.

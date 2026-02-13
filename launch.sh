@@ -2,7 +2,7 @@
 cd "$(dirname "$0")"
 
 # Check if container is running
-if docker ps | grep -q "dreamai-backend"; then
+if docker ps | grep -q "src-backend"; then
     echo
     echo "Stopping DREAM.AI..."
     cd docker

@@ -43,13 +43,13 @@ Do **not** start the THOR player binary by itself and expect a scene to load; wi
    Do not run `thor-Linux64` (or any THOR executable) yourself. Only run the Python controller script (e.g. `run_proc_test.py`). It will start the player and send the scene.
 
 2. **Use `docker/start_vnc.sh` as the single entrypoint**  
-   The container runs `start_vnc.sh` from `docker/`. It starts the display, VNC, then runs the controller. The script sets `PYTHONPATH` and `DISPLAY` so the controller can import `dreamai` and the player appears on the VNC display.
+   The container runs `start_vnc.sh` from `docker/`. It starts the display, VNC, then runs the controller. The script sets `PYTHONPATH` and `DISPLAY` so the controller can import `src` and the player appears on the VNC display.
 
 3. **ProcTHOR house shows "street" on Linux/VNC**  
    On the Linux THOR build, loading a ProcTHOR house (scene=house dict) often leaves you in the default **street view** (houses on both sides) instead of the interior. The controller reports success but the rendered scene is wrong. **Workaround:** use a built-in iTHOR scene for VNC. The repo's `start_vnc.sh` sets `DREAMAI_VNC_TEST`, which loads **FloorPlan1** (a kitchen) and works on Linux. For the ProcTHOR house, run the script locally (e.g. on Mac) or accept the street view on Linux until the build supports CreateHouse properly.
 
 4. **If the controller never loads any scene**  
-   - **Watch the terminal:** Run the container with `docker run --rm -it -p 6080:6080 -p 15900:5900 dreamai-thor`. You should see `[run_proc_test]` messages. If they stop before "Controller created" or "Scene loaded", note where they stop and any traceback.  
+   - **Watch the terminal:** Run the container with `docker run --rm -it -p 6080:6080 -p 15900:5900 src-thor`. You should see `[run_proc_test]` messages. If they stop before "Controller created" or "Scene loaded", note where they stop and any traceback.  
    - With the default VNC scene you should see the kitchen (FloorPlan1). If you still see only splash, the issue is display, build, or Controller startup.
 
 ---

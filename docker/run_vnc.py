@@ -9,7 +9,7 @@ Usage (from repo root):
 If ports 6080 or 15900 are in use, set env vars and run again, e.g.:
   DREAMAI_VNC_WEB_PORT=6081 DREAMAI_VNC_RAW_PORT=15901 python docker/run_vnc.py FloorPlan201
 
-Requires: Docker. Build once from repo root: docker build -t dreamai-thor -f docker/Dockerfile .
+Requires: Docker. Build once from repo root: docker build -t src-thor -f docker/Dockerfile .
 Then open the printed URL (e.g. http://localhost:6080/vnc.html) in your browser.
 """
 
@@ -35,9 +35,9 @@ def main() -> None:
         "-it",
         "-p", f"{web_port}:6080",
         "-p", f"{raw_port}:5900",
-        "-v", f"{repo_root}:/dreamai",
+        "-v", f"{repo_root}:/src",
         "-e", f"DREAMAI_VNC_SCENE={scene}",
-        "dreamai-thor",
+        "src-thor",
     ]
 
     # On macOS (including ARM), use amd64 image so Unity/THOR run correctly
@@ -52,7 +52,7 @@ def main() -> None:
         wrapper = [
             "bash",
             "-lc",
-            "sed -i 's/\\r$//' /dreamai/docker/start_vnc.sh && /dreamai/docker/start_vnc.sh",
+            "sed -i 's/\\r$//' /src/docker/start_vnc.sh && /src/docker/start_vnc.sh",
         ]
         cmd.extend(wrapper)
     print(f"Running: {' '.join(cmd)}")

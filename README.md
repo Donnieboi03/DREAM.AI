@@ -56,7 +56,7 @@ docker-compose up -d
 
 ```
 DREAM.AI/
-├── dreamai/                    # Python backend (FastAPI + AI2-THOR)
+├── src/                    # Python backend (FastAPI + AI2-THOR)
 │   ├── backend/api/           # WebSocket & HTTP handlers
 │   ├── envs/ai2thor/          # AI2-THOR environment wrapper
 │   ├── rl/                    # RL agent implementations
@@ -145,7 +145,7 @@ docker-compose build backend
 docker-compose restart backend
 
 # Access container shell
-docker exec -it dreamai-backend bash
+docker exec -it src-backend bash
 ```
 
 ## Development
@@ -163,14 +163,14 @@ docker-compose restart backend
 ### Local Development (without Docker)
 ```bash
 # Install Python dependencies
-pip install -r dreamai/requirements.txt
+pip install -r src/requirements.txt
 
 # Run backend
-cd dreamai
+cd src
 python -m backend.api.app
 
 # In another terminal, run frontend
-cd dreamai/frontend
+cd src/frontend
 npm install
 npm run dev
 ```
@@ -188,7 +188,7 @@ npm run dev
 | Issue | Solution |
 |-------|----------|
 | "Cannot reach localhost:5173" | Check Docker is running, wait 30s for startup |
-| "WebSocket connection failed" | Check backend logs: `docker logs dreamai-backend` |
+| "WebSocket connection failed" | Check backend logs: `docker logs src-backend` |
 | "Black screen" | Verify AI2-THOR initialized in logs, try reset button |
 | "Slow FPS" | Close other apps, check `docker stats` for resources |
 

@@ -1,14 +1,24 @@
+# MSC
 [Ll]ibrary/
 [Tt]emp/
 [Ll]ogs/
 [Oo]bj/
+
+# Visual Studio
 UserSettings/
 .vs/
 .plastic/
 *.csproj
 *.sln
+node_modules/
 __pycache__/
+.pytest_cache/
 .vscode/
-.dream
+
+# DreamAI
 .env
-dreamvenv
+venv/
+dreamvenv/
+dream/
+.dream/
+.DS_Store

@@ -1,218 +1,27 @@
-import React, { useState, useRef, useCallback } from "react";
-import GameViewport from "./components/GameViewport";
-import {
-  PromptBox,
-  MetricsDisplay,
-  ActionPanel,
-  TaskDisplay,
-} from "./components/UIOverlays";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
 
-interface GameMetrics {
-  agent_position: { x: number; y: number; z: number } | null;
-  agent_rotation: number | null;
-  episode_reward: number;
-  step_count: number;
-  last_action_success: boolean;
-}
+const queryClient = new QueryClient();
 
-interface TaskSpec {
-  description: string;
-  goal: string;
-  success_criteria: string[];
-  max_steps: number;
-  subtasks: any[];
-}
-
-function App() {
-  const [metrics, setMetrics] = useState<GameMetrics>({
-    agent_position: null,
-    agent_rotation: null,
-    episode_reward: 0,
-    step_count: 0,
-    last_action_success: true,
-  });
-  const [isProcessingTask, setIsProcessingTask] = useState(false);
-  const [currentTask, setCurrentTask] = useState<TaskSpec | null>(null);
-  const gameViewportRef = useRef<any>(null);
-
-  const handleMetricsUpdate = useCallback((newMetrics: GameMetrics) => {
-    setMetrics(newMetrics);
-  }, []);
-
-  const handlePromptSubmit = async (prompt: string) => {
-    console.log("[Pipeline] Prompt submitted:", prompt);
-    setIsProcessingTask(true);
-    try {
-      // Send prompt to backend orchestrator
-      const response = await fetch("/api/orchestrator/generate_task", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt,
-          max_steps: 500,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("[Pipeline] Task and scene generated:", data);
-
-        // Store the task
-        if (data.task) {
-          setCurrentTask(data.task);
-        }
-
-        // Load the scene via WebSocket through GameViewport ref
-        if (data.scene_id && gameViewportRef.current) {
-          console.log("[Pipeline] Loading scene:", data.scene_id);
-          gameViewportRef.current.loadScene(data.scene_id);
-        } else {
-          console.warn("[Pipeline] No scene_id returned by backend");
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error(
-          "Failed to generate task:",
-          errorData.detail || response.statusText
-        );
-        alert(
-          `Error: ${errorData.detail || "Failed to generate task. Check console for details."}`
-        );
-      }
-    } catch (error) {
-      console.error("Error submitting prompt:", error);
-      alert("Error submitting prompt. Check console for details.");
-    } finally {
-      console.log("[Pipeline] Prompt handling complete");
-      setIsProcessingTask(false);
-    }
-  };
-
-  const handleAction = (actionIndex: number) => {
-    // This is handled by GameViewport's WebSocket connection
-    console.log("Action sent:", actionIndex);
-  };
-
-  const handleReset = () => {
-    if (gameViewportRef.current) {
-      gameViewportRef.current.reset();
-      setCurrentTask(null);
-    }
-  };
-
-  return (
-    <div style={styles.app}>
-      {/* Header */}
-      <header style={styles.header}>
-        <h1>DREAM.AI - ProcTHOR Control Panel</h1>
-        <p style={styles.subtitle}>
-          Real-time environment streaming and control with LLM-generated scenes
-        </p>
-      </header>
-
-      {/* Main layout */}
-      <div style={styles.mainContainer}>
-        {/* Left sidebar - UI controls */}
-        <div style={styles.sidebar}>
-          {/* Prompt box */}
-          <PromptBox
-            onSubmit={handlePromptSubmit}
-            isLoading={isProcessingTask}
-          />
-
-          {/* Task Display */}
-          {currentTask && <TaskDisplay task={currentTask} />}
-
-          {/* Reset button */}
-          <button onClick={handleReset} style={styles.resetButton}>
-            🔄 Reset Scene
-          </button>
-
-          {/* Metrics display */}
-          <MetricsDisplay
-            episodeReward={metrics.episode_reward}
-            stepCount={metrics.step_count}
-            agentPosition={metrics.agent_position}
-            agentRotation={metrics.agent_rotation}
-            actionSuccess={metrics.last_action_success}
-          />
-
-          {/* Action control panel */}
-          <ActionPanel onAction={handleAction} />
-        </div>
-
-        {/* Right side - Game viewport */}
-        <div style={styles.gameContainer}>
-          <GameViewport
-            ref={gameViewportRef}
-            onMetricsUpdate={handleMetricsUpdate}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const styles = {
-  app: {
-    display: "flex",
-    flexDirection: "column" as const,
-    minHeight: "100vh",
-    backgroundColor: "#0a0e27",
-    color: "#e0e0e0",
-    fontFamily: '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-  },
-  header: {
-    backgroundColor: "#1a1f3a",
-    padding: "20px",
-    borderBottom: "2px solid #4a90e2",
-    textAlign: "center" as const,
-  },
-  subtitle: {
-    margin: "5px 0 0 0",
-    fontSize: "14px",
-    color: "#b0b0b0",
-  },
-  mainContainer: {
-    display: "flex",
-    gap: "20px",
-    padding: "20px",
-    flex: 1,
-    maxWidth: "1600px",
-    margin: "0 auto",
-    width: "100%",
-  },
-  sidebar: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "15px",
-    flex: "0 0 350px",
-    maxHeight: "calc(100vh - 140px)",
-    overflowY: "auto" as const,
-  },
-  resetButton: {
-    padding: "10px 15px",
-    backgroundColor: "#ef4444",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    fontSize: "14px",
-    fontWeight: "600" as const,
-    cursor: "pointer",
-    transition: "background-color 0.2s",
-    "&:hover": {
-      backgroundColor: "#dc2626",
-    },
-  },
-  gameContainer: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "600px",
-  },
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

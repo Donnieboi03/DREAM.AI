@@ -33,9 +33,27 @@ DREAM.AI is a system for training and evaluating reinforcement learning agents i
 - 2GB free disk space
 - Modern web browser
 
-### Run (30 seconds)
+### One-Command Launch
+
+**Local (no Docker) – macOS / Linux:**
 ```bash
-docker-compose up -d
+./launch-local.sh
+```
+Runs backend (Python) and frontend (npm) directly. Prerequisites: `pip install -r src/requirements.txt` and `cd src/frontend && npm install`. Opens http://localhost:8080.
+
+**Docker:**
+```bash
+./launch.sh          # macOS / Linux
+launch.bat           # Windows
+```
+Starts backend + frontend via Docker, waits for readiness, and opens http://localhost:5173.
+
+Add `GEMINI_API_KEY` or `GOOGLE_API_KEY` to a `.env` file for the Orchestrator LLM. Copy `.env.example` to `.env` and fill in your key.
+
+### Run manually
+```bash
+cd docker
+docker compose up -d
 # Wait 20-30 seconds
 # Open: http://localhost:5173
 ```

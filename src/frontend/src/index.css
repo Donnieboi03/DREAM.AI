@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 20% 6%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 18% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 18% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 187 100% 50%;
+    --primary-foreground: 220 20% 6%;
+
+    --secondary: 270 80% 60%;
+    --secondary-foreground: 210 20% 92%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 160 100% 45%;
+    --accent-foreground: 220 20% 6%;
+
+    --destructive: 0 80% 55%;
+    --destructive-foreground: 210 20% 92%;
+
+    --border: 220 15% 18%;
+    --input: 220 15% 18%;
+    --ring: 187 100% 50%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 187 100% 50%;
+    --sidebar-primary-foreground: 220 20% 6%;
+    --sidebar-accent: 220 15% 14%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 187 100% 50%;
+
+    --neon-cyan: 187 100% 50%;
+    --neon-purple: 270 80% 60%;
+    --neon-green: 160 100% 45%;
+    --glass: 220 18% 10%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: hsla(var(--glass), 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsla(var(--border), 0.5);
+  }
+
+  .neon-glow-cyan {
+    box-shadow: 0 0 15px hsla(var(--neon-cyan), 0.3),
+                0 0 30px hsla(var(--neon-cyan), 0.1);
+  }
+
+  .neon-glow-purple {
+    box-shadow: 0 0 15px hsla(var(--neon-purple), 0.3),
+                0 0 30px hsla(var(--neon-purple), 0.1);
+  }
+
+  .neon-text-cyan {
+    text-shadow: 0 0 10px hsla(var(--neon-cyan), 0.5);
+  }
+
+  .neon-text-purple {
+    text-shadow: 0 0 10px hsla(var(--neon-purple), 0.5);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsla(var(--muted-foreground), 0.3) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsla(var(--muted-foreground), 0.3);
+    border-radius: 2px;
+  }
+}

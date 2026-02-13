@@ -1,15 +1,17 @@
-# Build stage
-FROM node:18-alpine as builder
+# Build stage - use Debian (node:18-slim) to avoid Alpine musl + Rollup optional deps bug
+FROM node:18-slim as builder
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
+COPY package.json ./
+# Workaround npm optional deps bug (https://github.com/npm/cli/issues/4828):
+# Use npm install (no lockfile) so Rollup gets correct linux binary in container
+RUN npm install
 
 COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 

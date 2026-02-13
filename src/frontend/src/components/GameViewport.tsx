@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDreamAiWsGameUrl } from "@/lib/dreamaiConfig";
 
@@ -13,6 +15,7 @@ export interface GameMetrics {
 
 interface GameViewportProps {
   onMetricsUpdate?: (metrics: GameMetrics) => void;
+  onEnlargedChange?: (enlarged: boolean) => void;
   className?: string;
 }
 
@@ -23,9 +26,15 @@ export interface GameViewportHandle {
 }
 
 const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
-  ({ onMetricsUpdate, className }, ref) => {
+  ({ onMetricsUpdate, onEnlargedChange, className }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
+    const [isEnlarged, setIsEnlarged] = useState(false);
+
+    const setEnlarged = (v: boolean) => {
+      setIsEnlarged(v);
+      onEnlargedChange?.(v);
+    };
     const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("connecting");
     const [currentMetrics, setCurrentMetrics] = useState<GameMetrics>({
       agent_position: null,
@@ -106,8 +115,13 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
       const handleKeyDown = (e: KeyboardEvent) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
+        // Don't capture keys when user is typing in chat/input
+        const target = e.target as HTMLElement;
+        const tag = target?.tagName?.toLowerCase();
+        if (tag === "input" || tag === "textarea" || target?.isContentEditable) return;
+
         const keyMap: Record<string, number> = {
-          w: 0, s: 1, a: 2, d: 3, q: 4, e: 5, f: 6, g: 7, t: 8,
+          w: 0, s: 1, a: 2, d: 3, q: 4, e: 5, p: 6, l: 7, t: 8,
         };
         const action = keyMap[e.key.toLowerCase()];
         if (action !== undefined) {
@@ -130,13 +144,20 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
       error: "text-destructive",
     }[connectionStatus];
 
-    return (
-      <Card className={cn("relative overflow-hidden bg-black", className)}>
+    const viewportContent = (
+      <Card
+        className={cn(
+          "relative overflow-hidden bg-black w-full aspect-[16/9] shrink-0 cursor-pointer",
+          isEnlarged && "max-w-7xl",
+          className
+        )}
+        onDoubleClick={() => !isEnlarged && setEnlarged(true)}
+      >
         <canvas
           ref={canvasRef}
           width={1280}
           height={720}
-          className="w-full h-auto block"
+          className="w-full h-full block"
         />
         <div
           className={cn(
@@ -149,8 +170,45 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
           {connectionStatus === "disconnected" && "Disconnected"}
           {connectionStatus === "error" && "Error"}
         </div>
+        {isEnlarged && (
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute top-2 left-2 h-8 w-8 bg-black/60 hover:bg-black/80"
+            onClick={(e) => {
+              e.stopPropagation();
+              setEnlarged(false);
+            }}
+            title="Minimize"
+          >
+            <Minimize2 className="h-4 w-4" />
+          </Button>
+        )}
+        {!isEnlarged && (
+          <div className="absolute bottom-2 left-2 px-2 py-1 rounded text-[10px] text-muted-foreground bg-black/40">
+            Double-click to enlarge
+          </div>
+        )}
       </Card>
     );
+
+    if (isEnlarged) {
+      return (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setEnlarged(false)}
+        >
+          <div
+            className="w-full max-w-7xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {viewportContent}
+          </div>
+        </div>
+      );
+    }
+
+    return viewportContent;
   }
 );
 

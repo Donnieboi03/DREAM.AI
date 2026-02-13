@@ -27,6 +27,7 @@ const Index = () => {
   const [currentTask, setCurrentTask] = useState<TaskSpec | null>(null);
   const [metrics, setMetrics] = useState<GameMetrics | null>(null);
   const [rewardHistory, setRewardHistory] = useState<{ value: number }[]>([]);
+  const [isViewportEnlarged, setIsViewportEnlarged] = useState(false);
   const gameViewportRef = useRef<GameViewportHandle>(null);
 
   const handleMetricsUpdate = useCallback((m: GameMetrics) => {
@@ -145,7 +146,7 @@ const Index = () => {
         <GameViewport
           ref={gameViewportRef}
           onMetricsUpdate={handleMetricsUpdate}
-          className="flex-1 min-h-[280px]"
+          onEnlargedChange={setIsViewportEnlarged}
         />
         {currentTask && <TaskDisplay task={currentTask} />}
         <div className="flex gap-2">
@@ -156,7 +157,11 @@ const Index = () => {
         <ActionPanel onAction={handleAction} />
       </div>
 
-      <MetricsHUD metrics={metrics} rewardHistory={rewardHistory} />
+      <MetricsHUD
+        metrics={metrics}
+        rewardHistory={rewardHistory}
+        aboveOverlay={isViewportEnlarged}
+      />
     </div>
   );
 };

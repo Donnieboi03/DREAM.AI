@@ -14,11 +14,13 @@ interface GameMetrics {
 interface MetricsHUDProps {
   metrics?: GameMetrics | null;
   rewardHistory?: { value: number }[];
+  aboveOverlay?: boolean;
 }
 
 const MetricsHUD = ({
   metrics,
   rewardHistory = [],
+  aboveOverlay = false,
 }: MetricsHUDProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -46,11 +48,13 @@ const MetricsHUD = ({
     </ResponsiveContainer>
   );
 
+  const zClass = aboveOverlay ? "z-[60]" : "z-40";
+
   if (collapsed) {
     return (
       <button
         onClick={() => setCollapsed(false)}
-        className="fixed top-4 right-4 z-40 glass-panel rounded-lg p-2 text-primary hover:neon-glow-cyan transition-all"
+        className={cn("fixed top-4 right-4 glass-panel rounded-lg p-2 text-primary hover:neon-glow-cyan transition-all", zClass)}
       >
         <Activity className="h-5 w-5" />
       </button>
@@ -58,7 +62,7 @@ const MetricsHUD = ({
   }
 
   return (
-    <div className="fixed top-4 right-4 z-40 w-64 glass-panel rounded-xl p-3 space-y-3 neon-glow-cyan">
+    <div className={cn("fixed top-4 right-4 w-64 glass-panel rounded-xl p-3 space-y-3 neon-glow-cyan", zClass)}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Activity className="h-4 w-4 text-primary" />

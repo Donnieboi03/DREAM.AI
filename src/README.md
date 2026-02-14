@@ -13,7 +13,7 @@ Simulation-first robotics platform that automatically improves how robots are tr
 | **envs/** | AI2-THOR and common environment utilities |
 | **rl/** | Reinforcement learning (SB3, plugins, agent interface) |
 | **tools/** | Recorder, replay, validators |
-| **scripts/** | Local run and demo scripts |
+| **demos/** | Local run and demo scripts |
 
 ---
 
@@ -67,25 +67,25 @@ Then open **http://localhost:6080/vnc.html**. Full instructions, port overrides,
 
 ## Running the ProcTHOR test
 
-The script **`scripts/run_proc_test.py`** is the single demo: it loads or generates a house, starts the AI2-THOR simulator, and lets you drive the agent with the keyboard (WASD, Q/E, X to quit).
+The script **`demos/run_proc_test.py`** is the single demo: it loads or generates a house, starts the AI2-THOR simulator, and lets you drive the agent with the keyboard (WASD, Q/E, X to quit).
 
 ### Where to run from
 
 - **From the src directory (recommended):**
   ```bash
   cd src
-  python scripts/run_proc_test.py [options]
+  python demos/run_proc_test.py [options]
   ```
 - **From the repo root (parent of src):**
   ```bash
-  PYTHONPATH=. python src/scripts/run_proc_test.py [options]
+  PYTHONPATH=. python src/demos/run_proc_test.py [options]
   ```
 
 ### How to get a house
 
 | Mode | Command | Description |
 |------|---------|-------------|
-| **Dataset (default)** | `python scripts/run_proc_test.py` | Loads ProcTHOR-10K train[0]. |
+| **Dataset (default)** | `python demos/run_proc_test.py` | Loads ProcTHOR-10K train[0]. |
 | **Dataset (choose house)** | `--split val --index 5` or `--random --seed 123` | Pick by split/index or random. |
 | **Example schema** | `--use-example-schema` | Uses the canonical example house dict (10K train[0]) for schema-driven creation. |
 | **Config (generate)** | `--config 2-bed-1-bath --seed 42` | Tries procedural generation; on failure (e.g. macOS) falls back to 10K. |
@@ -94,9 +94,9 @@ The script **`scripts/run_proc_test.py`** is the single demo: it loads or genera
 ### Schema and inspecting the house dict
 
 - **Print schema (for LLMs or editing):**  
-  `python scripts/run_proc_test.py --print-schema`
+  `python demos/run_proc_test.py --print-schema`
 - **Dump example house as JSON (see exact format):**  
-  `python scripts/run_proc_test.py --print-example`  
+  `python demos/run_proc_test.py --print-example`  
   Shorter dump: `--print-example --print-example-max-objects 5`  
   Save to file: `--print-example --print-example-to example_house.json`
 

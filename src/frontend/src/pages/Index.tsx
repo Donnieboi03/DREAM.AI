@@ -4,15 +4,13 @@ import ParticleBackground from "@/components/ParticleBackground";
 import ChatSidebar, { type ChatSession } from "@/components/ChatSidebar";
 import ChatInterface, { type Message } from "@/components/ChatInterface";
 import MetricsHUD from "@/components/MetricsHUD";
-import GameViewport, {
-  type GameViewportHandle,
-  type GameMetrics,
-} from "@/components/GameViewport";
+import GameViewport, { type GameViewportHandle } from "@/components/GameViewport";
 import ActionPanel from "@/components/ActionPanel";
 import TaskDisplay from "@/components/TaskDisplay";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { generateTask, type TaskSpec } from "@/lib/dreamaiApi";
+import { useMetrics } from "@/hooks/useMetrics";
 
 const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -25,18 +23,9 @@ const Index = () => {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskSpec | null>(null);
-  const [metrics, setMetrics] = useState<GameMetrics | null>(null);
-  const [rewardHistory, setRewardHistory] = useState<{ value: number }[]>([]);
   const [isViewportEnlarged, setIsViewportEnlarged] = useState(false);
   const gameViewportRef = useRef<GameViewportHandle>(null);
-
-  const handleMetricsUpdate = useCallback((m: GameMetrics) => {
-    setMetrics(m);
-    setRewardHistory((prev) => [
-      ...prev.slice(-59),
-      { value: m.episode_reward },
-    ]);
-  }, []);
+  const { metrics, rewardHistory, updateMetrics, clearMetrics } = useMetrics();
 
   const activeMessages = chatHistories[activeSessionId] || [];
 
@@ -111,7 +100,7 @@ const Index = () => {
   const handleReset = () => {
     gameViewportRef.current?.reset();
     setCurrentTask(null);
-    setRewardHistory([]);
+    clearMetrics();
   };
 
   return (
@@ -145,7 +134,7 @@ const Index = () => {
       <div className="flex flex-col w-[480px] shrink-0 gap-3 p-4 overflow-y-auto">
         <GameViewport
           ref={gameViewportRef}
-          onMetricsUpdate={handleMetricsUpdate}
+          onMetricsUpdate={updateMetrics}
           onEnlargedChange={setIsViewportEnlarged}
         />
         {currentTask && <TaskDisplay task={currentTask} />}

@@ -1,6 +1,6 @@
 """House schema doc for Scene generator LLM — structure of HouseDict for editing."""
 
-# Mirrors HOUSE_SCHEMA_DOC from scripts/run_proc_test.py so backend/llm does not depend on scripts.
+# Mirrors HOUSE_SCHEMA_DOC from demos/run_proc_test.py so backend/llm does not depend on demos.
 
 HOUSE_SCHEMA_DOC = r"""
 House schema (HouseDict) for ProcTHOR / AI2-THOR CreateHouse

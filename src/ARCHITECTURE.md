@@ -23,11 +23,11 @@ This document describes each directory in the project, how to integrate ProcTHOR
 | **`rl/`** | Reinforcement learning: agent interface, SB3 (PPO/SAC), plugins, and training entry points. |
 | **`rl/sb3/`** | Stable-Baselines3 integration: VecEnv, PPO/SAC training loop, env workers. |
 | **`rl/plugins/`** | Agent plugins (e.g. SB3 policy, scripted agent) implementing the agent interface. |
-| **`tools/`** | Recorder (replay hooks), replay playback, and validators (guardrails). |
+| **`tools/`** | Recorder, replay, validators, **actions** (THOR_DISCRETE_ACTIONS), **keyboard_control** (run_keyboard_loop for demos). |
 | **`tools/recorder/`** | Hooks to log transitions/trajectories during env steps for replay or analysis. |
 | **`tools/replay/`** | Replay and analysis of recorded episodes. |
 | **`tools/validators/`** | Input/output and safety validators used by the pipeline. |
-| **`scripts/`** | One-off and demo scripts. **`run_proc_test.py`** is the single ProcTHOR demo: dataset mode (10K by split/index) or config mode (generate by room_spec_id with fallback to 10K). Use `--print-schema` to print the house customization schema (HouseDict: rooms, walls, doors, windows, objects, etc.) for LLM-driven or manual layout editing. |
+| **`demos/`** | Demo scripts (run_proc_test, run_llm_house_e2e, create_house, run_local). **`run_proc_test.py`** is the single ProcTHOR demo: dataset mode (10K by split/index) or config mode (generate by room_spec_id with fallback to 10K). Use `--print-schema` to print the house customization schema (HouseDict: rooms, walls, doors, windows, objects, etc.) for LLM-driven or manual layout editing. |
 
 ---
 
@@ -44,10 +44,10 @@ This document describes each directory in the project, how to integrate ProcTHOR
 From the **src** directory:
 
 ```bash
-python scripts/run_proc_test.py [options]
+python demos/run_proc_test.py [options]
 ```
 
-From repo root: `PYTHONPATH=. python src/scripts/run_proc_test.py [options]`.
+From repo root: `PYTHONPATH=. python src/demos/run_proc_test.py [options]`.
 
 | Option | Purpose |
 |--------|---------|
@@ -80,7 +80,7 @@ The script validates that ProcTHOR, AI2-THOR, and the 10K dataset work; demonstr
 
 Use the **ProcTHOR-10K** dataset via the `prior` library. No live house generation; you load a house dict and pass it to the AI2-THOR Controller.
 
-**Example (see `scripts/run_proc_test.py`):**
+**Example (see `demos/run_proc_test.py`):**
 
 ```python
 import prior
@@ -132,7 +132,7 @@ env.close()
 
 - **Under the hood:** `create_procthor_scene` uses `procthor.generation.HouseGenerator` and `PROCTHOR10K_ROOM_SPEC_SAMPLER`, then returns the controller (with the procedural scene loaded) and the House object.
 - **Config vs randomness:** `room_spec_id` (e.g. `"2-bed-1-bath"`) fixes which room types exist; layout and object placement are procedural and controlled by `seed`. Same config + same seed = same house. For finer control (e.g. floorplan scale, object counts), pass options via `create_procthor_scene(..., **house_generator_kwargs)` (ProcTHOR’s HouseGenerator accepts `sampling_vars` and related options).
-- **Caveat:** On some setups (e.g. macOS ARM), the Unity build may not support `CreateHouse`; you get "Unable to CreateHouse!". In that case use **option 1** (ProcTHOR-10K) or a fixed iTHOR scene (e.g. `ThorEnv(scene_name="FloorPlan1")`). The demo script `run_proc_test.py` supports both options and `--width`/`--height`; run `python scripts/run_proc_test.py --print-schema` for the house dict schema used for customizations (rooms, objects, walls, doors, windows).
+- **Caveat:** On some setups (e.g. macOS ARM), the Unity build may not support `CreateHouse`; you get "Unable to CreateHouse!". In that case use **option 1** (ProcTHOR-10K) or a fixed iTHOR scene (e.g. `ThorEnv(scene_name="FloorPlan1")`). The demo script `run_proc_test.py` supports both options and `--width`/`--height`; run `python demos/run_proc_test.py --print-schema` for the house dict schema used for customizations (rooms, objects, walls, doors, windows).
 
 ### Using ThorEnv (Gymnasium wrapper)
 

@@ -6,14 +6,45 @@ from typing import Any, Optional
 
 import gymnasium as gym
 import numpy as np
-from scripts.actions import THOR_DISCRETE_ACTIONS
+from tools.actions import THOR_DISCRETE_ACTIONS
+
+
+def _get_closest_pickable_object(metadata: dict) -> Optional[str]:
+    """Get objectId of closest visible pickable object from event metadata."""
+    interactable_ids = metadata.get("interactableObjectIds", [])
+    objects = metadata.get("objects", [])
+    if interactable_ids:
+        visible = [o for o in objects if o.get("objectId") in interactable_ids and o.get("visible")]
+        if visible:
+            return visible[0].get("objectId")
+        return interactable_ids[0] if interactable_ids else None
+    pickupable = [o for o in objects if o.get("visible") and o.get("pickupable")]
+    if pickupable:
+        return pickupable[0].get("objectId")
+    visible = [o for o in objects if o.get("visible")]
+    return visible[0].get("objectId") if visible else None
+
+
+def _get_closest_toggleable_object(metadata: dict) -> tuple[Optional[str], bool]:
+    """Get (objectId, is_toggled_on) for closest visible toggleable object."""
+    interactable_ids = metadata.get("interactableObjectIds", [])
+    objects = metadata.get("objects", [])
+    toggleable = [o for o in objects if o.get("visible") and o.get("toggleable")]
+    if toggleable:
+        o = toggleable[0]
+        return (o.get("objectId"), o.get("isToggled", False))
+    if interactable_ids and objects:
+        for o in objects:
+            if o.get("objectId") in interactable_ids and o.get("visible"):
+                return (o.get("objectId"), o.get("isToggled", False))
+    return (None, False)
 
 def _get_ai2thor_controller(
     scene_name: Optional[str] = None,
     existing_controller: Any = None,
     width: int = 300,
     height: int = 300,
-    quality: str = "Low",
+    quality: str = "Very High",
     **kwargs: Any,
 ) -> Any:
     """Return an AI2-THOR controller (existing or new)."""
@@ -125,16 +156,36 @@ class ThorEnv(gym.Env):
         return obs, info
 
     def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict]:
-        """Step with a discrete action index."""
+        """Step with a discrete action index. Pickup/Toggle/Drop resolve objectId from metadata."""
         action_name = THOR_DISCRETE_ACTIONS[action]
-        self._thor_step(action_name)
+        meta = getattr(self._last_event, "metadata", None) or {} if self._last_event else {}
+
+        # Object-based actions require objectId (and Drop uses forceAction)
+        if action_name == "PickupObject":
+            obj_id = _get_closest_pickable_object(meta)
+            if obj_id:
+                self._thor_step(action_name, objectId=obj_id)
+            else:
+                self._thor_step("Pass")  # No target; no-op
+        elif action_name == "ToggleObjectOn":
+            obj_id, is_on = _get_closest_toggleable_object(meta)
+            if obj_id:
+                toggle_action = "ToggleObjectOff" if is_on else "ToggleObjectOn"
+                self._thor_step(toggle_action, objectId=obj_id)
+            else:
+                self._thor_step("Pass")
+        elif action_name == "DropHandObject":
+            self._thor_step(action_name, forceAction=True)
+        else:
+            self._thor_step(action_name)
+
         self._step_count += 1
         obs = self._get_frame()
         reward = 0.0
         terminated = False
         meta = getattr(self._last_event, "metadata", None) or {}
         last_success = meta.get("lastActionSuccess", False)
-        if last_success and action_name in ("PickupObject", "ToggleObjectOn", "DropHandObject"):
+        if last_success and action_name in ("PickupObject", "ToggleObjectOn", "ToggleObjectOff", "DropHandObject"):
             reward += 0.1
         if self._step_count >= self._max_steps:
             truncated = True

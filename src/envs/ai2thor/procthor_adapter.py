@@ -216,7 +216,7 @@ def create_procthor_scene(
     split: str = "train",
     scene_spec: Optional["_SceneSpec"] = None,
     room_spec_id: Optional[str] = None,
-    quality: str = "Low",
+    quality: str = "Very High",
     max_retries: int = 2,
     **house_generator_kwargs: Any,
 ) -> tuple[Any, Any]:
@@ -272,8 +272,8 @@ def scene_spec_to_procthor_options(scene_spec: Optional["_SceneSpec"]) -> dict[s
 
 
 def make_procthor_env(
-    width: int = 400,
-    height: int = 400,
+    width: int = 1280,
+    height: int = 720,
     scene_spec: Optional["_SceneSpec"] = None,
 ) -> "Any":
     """Create a procedural AI2-THOR environment for interactive control.
@@ -285,8 +285,8 @@ def make_procthor_env(
     AI2-THOR scene (FloorPlan1).
     
     Args:
-        width: Canvas width in pixels (default 400)
-        height: Canvas height in pixels (default 400)
+        width: Canvas width in pixels (default 1280)
+        height: Canvas height in pixels (default 720)
         scene_spec: Optional SceneSpec to control procedural generation (e.g., seed)
         
     Returns:
@@ -297,6 +297,7 @@ def make_procthor_env(
     # Try to create a ProcTHOR scene first
     try:
         options = scene_spec_to_procthor_options(scene_spec)
+        options["quality"] = "Very High"
         controller, house = create_procthor_scene(**options)
         env = ThorEnv(controller=controller, width=width, height=height, render_mode="rgb_array")
         print("✓ ProcTHOR environment initialized successfully")
@@ -311,6 +312,9 @@ def make_procthor_env(
             
             controller = Controller(
                 scene="FloorPlan1",
+                width=width,
+                height=height,
+                quality="Very High",
                 gridSize=0.25,
                 visibilityDistance=1.5,
             )

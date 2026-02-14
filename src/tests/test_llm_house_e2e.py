@@ -9,13 +9,13 @@ from pathlib import Path
 
 import pytest
 
-# Repo root and src/scripts on path (src package + ThorEnv's "from actions import ...")
+# Repo root and src/demos on path (src package + ThorEnv's "from tools.actions import ...")
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SCRIPTS_DIR = REPO_ROOT / "src" / "scripts"
+DEMOS_DIR = REPO_ROOT / "src" / "demos"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
+if str(DEMOS_DIR) not in sys.path:
+    sys.path.insert(0, str(DEMOS_DIR))
 
 PROCTHOR_10K_REVISION = "ab3cacd0fc17754d4c080a3fd50b18395fae8647"
 

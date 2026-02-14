@@ -1,15 +1,8 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Activity, ChevronUp } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
-
-interface GameMetrics {
-  agent_position: { x: number; y: number; z: number } | null;
-  agent_rotation: number | null;
-  episode_reward: number;
-  step_count: number;
-  last_action_success: boolean;
-}
+import type { GameMetrics } from "@/types/game";
 
 interface MetricsHUDProps {
   metrics?: GameMetrics | null;
@@ -17,11 +10,11 @@ interface MetricsHUDProps {
   aboveOverlay?: boolean;
 }
 
-const MetricsHUD = ({
+const MetricsHUD = memo(function MetricsHUD({
   metrics,
   rewardHistory = [],
   aboveOverlay = false,
-}: MetricsHUDProps) => {
+}: MetricsHUDProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   const episodeReward = metrics?.episode_reward ?? 0;
@@ -35,7 +28,7 @@ const MetricsHUD = ({
   const MiniChart = ({ data, color }: { data: { value: number }[]; color: string }) => (
     <ResponsiveContainer width="100%" height={32}>
       <LineChart data={data}>
-        <YAxis hide domain={["auto", "auto"]} />
+        <YAxis hide domain={["dataMin", "dataMax"]} padding={{ top: 4, bottom: 4 }} />
         <Line
           type="monotone"
           dataKey="value"
@@ -133,6 +126,6 @@ const MetricsHUD = ({
       </div>
     </div>
   );
-};
+});
 
 export default MetricsHUD;

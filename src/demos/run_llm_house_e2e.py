@@ -5,7 +5,7 @@ Uses only AI2-THOR built-in scenes (controller.scenes_in_build). The LLM outputs
 and room_preferences; we iterate the built-in scene list and pick a matching scene, then
 load it via controller.reset(scene=...). No ProcTHOR-10K, no CreateHouse.
 
-Run from repo root:  PYTHONPATH=. python src/scripts/run_llm_house_e2e.py "I want a kitchen and living room"
+Run from repo root:  PYTHONPATH=. python src/demos/run_llm_house_e2e.py "I want a kitchen and living room"
 Loads .env from repo root automatically. Requires GEMINI_API_KEY or GOOGLE_API_KEY unless --no-llm.
 """
 
@@ -77,7 +77,7 @@ def run_workflow(
     controller = Controller(
         #branch="main",
         agentMode="default",
-        quality="High",
+        quality="Very High",
         visibilityDistance=1.5,
         width=width,
         height=height,
@@ -104,7 +104,7 @@ def run_workflow(
     time.sleep(3)
 
     from src.envs.ai2thor.thor_env import ThorEnv
-    from src.scripts._keyboard_control import run_keyboard_loop
+    from src.tools.keyboard_control import run_keyboard_loop
 
     print("[E2E] Creating ThorEnv wrapper...")
     env = ThorEnv(controller=controller, width=width, height=height)
@@ -120,11 +120,11 @@ def run_workflow(
         else:
             print("Terminal mode: keep this terminal focused.")
         print()
-        run_keyboard_loop(controller, use_global_keys=use_global_keys)
+        run_keyboard_loop(env, use_global_keys=use_global_keys)
         return True
     except TimeoutError:
         print("\n[E2E] AI2-THOR backend timed out during env.reset() (Initialize step).", file=sys.stderr)
-        print("  python src/scripts/run_llm_house_e2e.py --no-llm", file=sys.stderr)
+        print("  python src/demos/run_llm_house_e2e.py --no-llm", file=sys.stderr)
         print("See: https://github.com/allenai/ai2thor#requirements", file=sys.stderr)
         raise
     finally:

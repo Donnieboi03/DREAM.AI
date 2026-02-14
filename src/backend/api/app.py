@@ -142,6 +142,9 @@ async def websocket_game_endpoint(websocket: WebSocket):
                     # Create new controller with the requested scene
                     new_controller = Controller(
                         scene=scene_name,
+                        width=stream_manager.render_width,
+                        height=stream_manager.render_height,
+                        quality="Very High",
                         gridSize=0.25,
                         visibilityDistance=1.5,
                     )

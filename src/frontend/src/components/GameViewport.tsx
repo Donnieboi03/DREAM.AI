@@ -4,14 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Minimize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getDreamAiWsGameUrl } from "@/lib/dreamaiConfig";
+import type { GameMetrics } from "@/types/game";
 
-export interface GameMetrics {
-  agent_position: { x: number; y: number; z: number } | null;
-  agent_rotation: number | null;
-  episode_reward: number;
-  step_count: number;
-  last_action_success: boolean;
-}
+export type { GameMetrics };
 
 interface GameViewportProps {
   onMetricsUpdate?: (metrics: GameMetrics) => void;
@@ -29,6 +24,7 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
   ({ onMetricsUpdate, onEnlargedChange, className }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
+    const lastMetricsKeyRef = useRef("");
     const [isEnlarged, setIsEnlarged] = useState(false);
 
     const setEnlarged = (v: boolean) => {
@@ -90,7 +86,12 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
 
                 if (message.metrics) {
                   setCurrentMetrics(message.metrics);
-                  onMetricsUpdate?.(message.metrics);
+                  const m = message.metrics;
+                  const key = `${m.episode_reward}|${m.step_count}|${m.last_action_success}|${m.agent_position?.x ?? ""}|${m.agent_position?.z ?? ""}`;
+                  if (key !== lastMetricsKeyRef.current) {
+                    lastMetricsKeyRef.current = key;
+                    onMetricsUpdate?.(message.metrics);
+                  }
                 }
               }
             } catch (e) {

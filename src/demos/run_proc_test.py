@@ -30,19 +30,19 @@ Schema and inspection
 
 How to run
 ----------
-  From src/:   python scripts/run_proc_test.py [options]
-  From repo root:  PYTHONPATH=. python src/scripts/run_proc_test.py [options]
+  From src/:   python demos/run_proc_test.py [options]
+  From repo root:  PYTHONPATH=. python src/demos/run_proc_test.py [options]
 
 Examples:
-  python scripts/run_proc_test.py
-  python scripts/run_proc_test.py --config 2-bed-1-bath --seed 42
-  python scripts/run_proc_test.py --split val --index 5
-  python scripts/run_proc_test.py --random --seed 123
-  python scripts/run_proc_test.py --config 4-room --no-fullscreen --width 1920 --height 1080
-  python scripts/run_proc_test.py --print-schema
-  python scripts/run_proc_test.py --use-example-schema
-  python scripts/run_proc_test.py --print-example
-  python scripts/run_proc_test.py --print-example --print-example-to example_house.json
+  python demos/run_proc_test.py
+  python demos/run_proc_test.py --config 2-bed-1-bath --seed 42
+  python demos/run_proc_test.py --split val --index 5
+  python demos/run_proc_test.py --random --seed 123
+  python demos/run_proc_test.py --config 4-room --no-fullscreen --width 1920 --height 1080
+  python demos/run_proc_test.py --print-schema
+  python demos/run_proc_test.py --use-example-schema
+  python demos/run_proc_test.py --print-example
+  python demos/run_proc_test.py --print-example --print-example-to example_house.json
 """
 
 # -----------------------------------------------------------------------------
@@ -430,11 +430,15 @@ def run_demo(
         print("Terminal mode: keep this terminal focused.")
     print("(Spinning cursor on macOS: try --no-fullscreen.)\n")
 
-    from _keyboard_control import run_keyboard_loop
+    from src.envs.ai2thor.thor_env import ThorEnv
+    from src.tools.keyboard_control import run_keyboard_loop
+
+    env = ThorEnv(controller=controller, width=width, height=height, render_mode="rgb_array")
+    env._last_event = controller.last_event  # Sync so first step has metadata for Pickup/Toggle
     try:
-        run_keyboard_loop(controller, use_global_keys=use_global_keys)
+        run_keyboard_loop(env, use_global_keys=use_global_keys)
     finally:
-        controller.stop()
+        env.close()
 
 
 def main():

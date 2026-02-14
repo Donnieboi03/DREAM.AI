@@ -55,5 +55,5 @@ export DREAMAI_VNC_TEST=4
 [ -n "${DREAMAI_VNC_SCENE:-}" ] && echo "Scene: ${DREAMAI_VNC_SCENE}"
 [ -n "${GEMINI_API_KEY:-}${GOOGLE_API_KEY:-}" ] && echo "API key set (LLM enabled)."
 echo "Starting Python controller (watch for [run_proc_test] messages below)..."
-python src/scripts/run_llm_house_e2e.py "I want a big house with 12 rooms"
-#ython src/scripts/run_proc_test.py 
+python src/demos/run_llm_house_e2e.py "I want a big house with 12 rooms"
+#ython src/demos/run_proc_test.py 

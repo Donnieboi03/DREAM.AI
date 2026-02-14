@@ -109,7 +109,7 @@ class GameStreamManager:
         self.current_metrics["episode_reward"] += reward
         self.current_metrics["step_count"] += 1
         self.current_metrics["last_action_success"] = info.get(
-            "action_success", True
+            "last_action_success", True
         )
 
         # Extract agent state from environment if available
@@ -172,8 +172,15 @@ class GameStreamManager:
             if self.env._controller:
                 self.env._controller.stop()
             
-            # Create new controller with the edited house
-            new_controller = Controller(scene=scene_dict)
+            # Create new controller with the edited house (High quality)
+            new_controller = Controller(
+                scene=scene_dict,
+                width=self.render_width,
+                height=self.render_height,
+                quality="Very High",
+                gridSize=0.25,
+                visibilityDistance=1.5,
+            )
             
             # Update the environment's controller
             self.env._controller = new_controller

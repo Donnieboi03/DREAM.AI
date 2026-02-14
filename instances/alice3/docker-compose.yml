@@ -1,0 +1,81 @@
+services:
+  nginx:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.nginx
+    container_name: dreamai-nginx-${USER_ID}
+    ports:
+      - "${NGINX_PORT}:80"
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - dreamai_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ../../src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-${USER_ID}
+    environment:
+      - VITE_USER_ID=${USER_ID}
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai_network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  backend:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-${USER_ID}
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=${USER_ID}
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai_models_volume:/var/local/models
+    networks:
+      - dreamai_network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  dreamai_network:
+    driver: bridge
+    name: dreamai-${USER_ID}-network
+
+volumes:
+  dreamai_models_volume:
+    driver: local
+    name: dreamai-models-${USER_ID}

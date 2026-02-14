@@ -1,0 +1,387 @@
+# Master docker-compose for DREAM.AI multi-instance deployment
+# Usage: NUM_INSTANCES=3 docker compose -f docker/docker-compose.orchestrator.yml up -d
+# This spins up NUM_INSTANCES backend+frontend pairs plus a single nginx load balancer
+
+version: '3.9'
+
+services:
+  # Central Nginx Load Balancer / Reverse Proxy
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.nginx
+    container_name: dreamai-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    depends_on:
+      - backend-alice
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - TZ=UTC
+
+  # ============================================================================
+  # INSTANCE 1: ALICE (Always on)
+  # ============================================================================
+  backend-alice:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-alice
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=alice
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai-models-alice:/var/local/models
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  frontend-alice:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-alice
+    environment:
+      - VITE_USER_ID=alice
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ============================================================================
+  # INSTANCE 2: BOB (Optional, controlled by NUM_INSTANCES)
+  # ============================================================================
+  backend-bob:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-bob
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=bob
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai-models-bob:/var/local/models
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    profiles:
+      - multi-instance
+
+  frontend-bob:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-bob
+    environment:
+      - VITE_USER_ID=bob
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - multi-instance
+
+  # ============================================================================
+  # INSTANCE 3: CHARLIE (Optional, controlled by NUM_INSTANCES)
+  # ============================================================================
+  backend-charlie:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-charlie
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=charlie
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai-models-charlie:/var/local/models
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    profiles:
+      - multi-instance
+
+  frontend-charlie:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-charlie
+    environment:
+      - VITE_USER_ID=charlie
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - multi-instance
+
+  # ============================================================================
+  # INSTANCE 4: DAVE (Optional)
+  # ============================================================================
+  backend-dave:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-dave
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=dave
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai-models-dave:/var/local/models
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    profiles:
+      - multi-instance
+
+  frontend-dave:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-dave
+    environment:
+      - VITE_USER_ID=dave
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - multi-instance
+
+  # ============================================================================
+  # INSTANCE 5: EVE (Optional)
+  # ============================================================================
+  backend-eve:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-eve
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=eve
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai-models-eve:/var/local/models
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    profiles:
+      - multi-instance
+
+  frontend-eve:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-eve
+    environment:
+      - VITE_USER_ID=eve
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - multi-instance
+
+  # ============================================================================
+  # INSTANCE 6: FRANK (Optional)
+  # ============================================================================
+  backend-frank:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+      platforms:
+        - linux/amd64
+    container_name: dreamai-backend-frank
+    environment:
+      - PYTHONUNBUFFERED=1
+      - AI2THOR_HEADLESS=1
+      - LOG_LEVEL=info
+      - SESSION_USER_ID=frank
+      - MODELS_BASE_PATH=/var/local/models
+    volumes:
+      - dreamai-models-frank:/var/local/models
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    profiles:
+      - multi-instance
+
+  frontend-frank:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: dreamai-frontend-frank
+    environment:
+      - VITE_USER_ID=frank
+      - VITE_DREAMAI_API_URL=/api
+      - VITE_DREAMAI_WS_URL=/ws
+    networks:
+      - dreamai-network
+    restart: unless-stopped
+    expose:
+      - "5173"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - multi-instance
+
+networks:
+  dreamai-network:
+    driver: bridge
+    name: dreamai-network
+
+volumes:
+  dreamai-models-alice:
+    driver: local
+    name: dreamai-models-alice
+  dreamai-models-bob:
+    driver: local
+    name: dreamai-models-bob
+  dreamai-models-charlie:
+    driver: local
+    name: dreamai-models-charlie
+  dreamai-models-dave:
+    driver: local
+    name: dreamai-models-dave
+  dreamai-models-eve:
+    driver: local
+    name: dreamai-models-eve
+  dreamai-models-frank:
+    driver: local
+    name: dreamai-models-frank

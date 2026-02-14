@@ -1,58 +1,49 @@
 import subprocess
+import webbrowser
 import os
+import signal
+import sys
 import time
-import json
-import base64
-import re
 
+SSH_KEY = os.path.expanduser("~/.ssh/vast_key")
 VM_HOST = "root@213.181.122.2"
 VM_PORT = "59400"
-SSH_KEY = os.path.expanduser(r"~/.ssh/vast_key")
 
-BOOTSTRAP_URL = (
-    "https://raw.githubusercontent.com/"
-    "Donnieboi03/DREAM.AI/vm_testing/src/vm_bootstrap_init.sh"
-)
-BOOTSTRAP_URL = f"{BOOTSTRAP_URL}?t={int(time.time())}"
+port_forward_proc = None
 
-cmd = (
-    f"ssh -i {SSH_KEY} -p {VM_PORT} {VM_HOST} "
-    f"\"bash -lc 'curl -fsSL {BOOTSTRAP_URL} | bash'\""
-)
 
-print("DEBUG running:", cmd)
+def cleanup(signum=None, frame=None):
+    global port_forward_proc
+    if port_forward_proc:
+        print("\nStopping port forwarding...")
+        port_forward_proc.terminate()
+    sys.exit(0)
 
-res = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
-# Always print remote logs (useful for debugging)
-print(res.stdout)
+signal.signal(signal.SIGINT, cleanup)
 
-if res.returncode != 0:
-    print(res.stderr)
-    raise SystemExit(res.returncode)
+print("\n=== Port Forwarding ===")
+print("Make sure you have:")
+print("  1. SSH session open to VM")
+print("  2. docker compose up running on VM in /root/DREAM.AI/docker")
+print()
 
-# Extract meta
-meta = None
-for line in res.stdout.splitlines():
-    if line.startswith("DREAMAI_META "):
-        meta = json.loads(line[len("DREAMAI_META "):])
-        break
+print("Setting up port forwarding...")
+port_forward_proc = subprocess.Popen([
+    "ssh", "-i", SSH_KEY, "-p", VM_PORT,
+    "-L", "5173:localhost:5173",
+    "-L", "8000:localhost:8000",
+    VM_HOST, "-N"
+])
 
-# Extract base64 block
-m = re.search(
-    r"DREAMAI_FRAME_B64_BEGIN\s*(.*?)\s*DREAMAI_FRAME_B64_END",
-    res.stdout,
-    flags=re.DOTALL,
-)
-if not m:
-    raise RuntimeError("No frame found in output")
+print("✓ Port forwarding active")
+print("✓ Opening http://localhost:5173")
+time.sleep(1)
+webbrowser.open("http://localhost:5173")
+print("✓ Press Ctrl+C to stop\n")
 
-b64 = m.group(1).strip()
-png_bytes = base64.b64decode(b64)
-
-out_path = os.path.abspath("thor_frame.png")
-with open(out_path, "wb") as f:
-    f.write(png_bytes)
-
-print("Saved frame:", out_path)
-print("Meta:", meta)
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    cleanup()

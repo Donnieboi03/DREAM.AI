@@ -30,9 +30,9 @@ fi
 cd "$REPO_DIR"
 echo "[bootstrap] Fetching + hard resetting to origin/$BRANCH..."
 git fetch origin
+git clean -fd
 git checkout -B "$BRANCH" "origin/$BRANCH"
 git reset --hard "origin/$BRANCH"
-git clean -fd
 
 # 3) Print what commit we are on
 echo "[bootstrap] Current commit: $(git rev-parse --short HEAD)"

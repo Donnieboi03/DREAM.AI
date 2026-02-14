@@ -1,5 +1,5 @@
 # Multi-stage build: compile stage + runtime stage
-FROM --platform=linux/amd64 python:3.10-slim as builder
+FROM --platform=linux/amd64 python:3.12-slim as builder
 
 # Build dependencies for ProcTHOR (python-fcl, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,14 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
-COPY ../src/requirements.txt .
+COPY src/requirements.txt .
 
 # Build wheels for faster installation
 RUN pip install --user --no-cache-dir --upgrade pip wheel \
     && pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
 
 # Runtime stage
-FROM --platform=linux/amd64 python:3.10-slim
+FROM --platform=linux/amd64 python:3.12-slim
 
 # Runtime dependencies for AI2-THOR (headless rendering + web)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,15 +44,19 @@ WORKDIR /src
 
 # Copy wheels from builder
 COPY --from=builder /build/wheels /tmp/wheels
-COPY ../src/requirements.txt .
+COPY src/requirements.txt .
 
-# Install wheels (no index, pre-built)
+# Copy and install rl_thor for GraphTask support
+COPY third_party/rl_thor /src/third_party/rl_thor
+
+# Install wheels (no index, pre-built) and rl_thor
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-index --find-links=/tmp/wheels -r requirements.txt \
+    && pip install --no-cache-dir -e /src/third_party/rl_thor \
     && rm -rf /tmp/wheels
 
 # Copy application code
-COPY ../src/ /src/
+COPY src/ /src/
 
 # Set PYTHONPATH so both top-level modules and src.* imports resolve
 ENV PYTHONPATH=/src:/

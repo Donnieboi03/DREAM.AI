@@ -59,6 +59,25 @@ Rebuild when you change `Dockerfile.testing` or `src/requirements.txt`.
 
 ---
 
+## Building with GraphTask (rl_thor)
+
+DREAM.AI uses [rl_thor](https://github.com/JulianPaquerot/rl_thor) (MIT) for GraphTask-based reward computation when training RL agents. rl_thor is included in `third_party/rl_thor` and is installed automatically during Docker builds.
+
+**Requirements:**
+- Ensure `third_party/rl_thor` exists in the repo (it is copied or added as a submodule).
+- All Docker images use Python 3.12 to satisfy rl_thor's requirement.
+
+**Docker:** No extra steps. Build as usual; rl_thor is installed from `third_party/rl_thor`.
+
+**Local development (non-Docker):**
+```bash
+cd /path/to/DREAM.AI
+pip install -r src/requirements.txt
+pip install -e third_party/rl_thor
+```
+
+---
+
 ## 1. Build the image (once)
 
 From the **repo root**:

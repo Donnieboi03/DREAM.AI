@@ -1,5 +1,5 @@
 # Single-stage build: all dependencies + app in one image
-FROM --platform=linux/amd64 python:3.10-slim
+FROM --platform=linux/amd64 python:3.12-slim
 
 # Build + runtime dependencies for ProcTHOR (AI2-THOR)
 # Including xvfb for virtual X display in headless mode
@@ -32,9 +32,13 @@ WORKDIR /src
 # Copy requirements first
 COPY src/requirements.txt .
 
+# Copy and install rl_thor for GraphTask support
+COPY third_party/rl_thor /src/third_party/rl_thor
+
 # Install Python dependencies (all in one shot, including transitive deps)
 RUN pip install --no-cache-dir --upgrade pip wheel \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir -e /src/third_party/rl_thor
 
 # Copy application code
 COPY src/ /src/

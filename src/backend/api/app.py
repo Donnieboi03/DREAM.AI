@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .websocket_stream import GameStreamManager
 from .runtime_state import set_game_env
 from .orchestrator_routes import router as orchestrator_router
+from .rl_routes import router as rl_router
 
 # Import from DREAM.AI modules (PYTHONPATH set in Dockerfile)
 from envs.ai2thor.procthor_adapter import make_procthor_env
@@ -18,6 +19,17 @@ from envs.ai2thor.procthor_adapter import make_procthor_env
 game_env = None
 stream_manager = None
 streaming_task = None
+
+
+def _merge_task_metrics(metrics: dict, info: dict) -> None:
+    """Merge task-related and agent fields from env info into metrics."""
+    for key in ("task_advancement", "max_task_advancement", "is_success", "task_type"):
+        if key in info:
+            metrics[key] = info[key]
+    if "agent_position" in info and info["agent_position"]:
+        metrics["agent_position"] = info["agent_position"]
+    if "agent_rotation" in info:
+        metrics["agent_rotation"] = info["agent_rotation"]
 
 
 @asynccontextmanager
@@ -65,6 +77,7 @@ app.add_middleware(
 
 # Include orchestrator routes
 app.include_router(orchestrator_router)
+app.include_router(rl_router)
 
 
 @app.get("/health")
@@ -84,7 +97,7 @@ async def websocket_game_endpoint(websocket: WebSocket):
     
     Browser sends:
     - {"type": "action", "action": <0-8>}
-    - {"type": "reset"}
+    - {"type": "reset"} or {"type": "reset", "randomize": true} (randomize: agent reset with random positions)
     - {"type": "start_streaming"}
     - {"type": "stop_streaming"}
     - {"type": "load_scene", "scene": "FloorPlan201"}
@@ -107,18 +120,38 @@ async def websocket_game_endpoint(websocket: WebSocket):
             data = await websocket.receive_json()
             message_type = data.get("type")
             
-            if message_type == "action":
-                # Handle discrete action
-                result = await stream_manager.handle_action(data)
+            if message_type == "identify":
+                role = data.get("role", "browser")
+                if role in ("browser", "rl_agent"):
+                    stream_manager.set_connection_role(websocket, role)
+                    await websocket.send_json({"type": "identified", "role": role})
+                else:
+                    await websocket.send_json({"type": "error", "message": f"Unknown role: {role}"})
+
+            elif message_type == "set_control_mode":
+                # Only browser can change control mode
+                if stream_manager.connection_roles.get(websocket, "browser") == "browser":
+                    mode = data.get("mode", "user")
+                    if mode in ("user", "agent"):
+                        stream_manager.set_control_mode(mode)
+                        await websocket.send_json({"type": "control_mode_set", "mode": mode})
+                    else:
+                        await websocket.send_json({"type": "error", "message": f"Unknown mode: {mode}"})
+                else:
+                    await websocket.send_json({"type": "error", "message": "Only browser can set control mode"})
+
+            elif message_type == "action":
+                # Handle discrete action (filtered by control mode and connection role)
+                result = await stream_manager.handle_action(data, websocket)
                 await websocket.send_json({"type": "action_result", "data": result})
             
             elif message_type == "reset":
-                # Reset environment
+                # Reset environment (handle_reset does the reset with optional scene_randomization)
                 result = await stream_manager.handle_reset(data)
-                # Send initial frame after reset
-                observation, info = game_env.reset()
-                await stream_manager.broadcast_frame(observation, stream_manager.current_metrics)
-                await websocket.send_json({"type": "reset_result", "data": result})
+                observation = result.get("observation")
+                if observation is not None:
+                    await stream_manager.broadcast_frame(observation, stream_manager.current_metrics)
+                await websocket.send_json({"type": "reset_result", "data": {"observation_shape": result.get("observation_shape"), "initial_metrics": result.get("initial_metrics")}})
             
             elif message_type == "set_resolution":
                 # Set rendering resolution
@@ -132,6 +165,7 @@ async def websocket_game_endpoint(websocket: WebSocket):
             elif message_type == "load_scene":
                 # Load a different scene
                 scene_name = data.get("scene", "FloorPlan1")
+                task_description_dict = data.get("task_description_dict")
                 try:
                     from ai2thor.controller import Controller
                     
@@ -149,19 +183,32 @@ async def websocket_game_endpoint(websocket: WebSocket):
                         visibilityDistance=1.5,
                     )
                     
-                    # Update the environment's controller
+                    # Update the environment's controller and scene for reset
                     game_env._controller = new_controller
                     game_env._last_event = None
+                    game_env.set_current_scene(scene_name)
+                    # Set or clear rl_thor graph task
+                    if task_description_dict and isinstance(task_description_dict, dict):
+                        ok = game_env.set_graph_task(task_description_dict)
+                        print(f"✓ Graph task {'set' if ok else '(rl_thor unavailable)'}")
+                    else:
+                        game_env.clear_graph_task()
                     stream_manager.current_metrics = {
                         "agent_position": None,
                         "agent_rotation": None,
                         "episode_reward": 0.0,
                         "step_count": 0,
                         "last_action_success": True,
+                        "task_advancement": None,
+                        "max_task_advancement": None,
+                        "is_success": None,
+                        "task_type": None,
                     }
                     
                     # Send initial frame
                     observation, info = game_env.reset()
+                    if info:
+                        _merge_task_metrics(stream_manager.current_metrics, info)
                     await stream_manager.broadcast_frame(observation, stream_manager.current_metrics)
                     await websocket.send_json({"type": "scene_loaded", "scene": scene_name})
                     print(f"✓ Scene loaded: {scene_name}")
@@ -175,6 +222,8 @@ async def websocket_game_endpoint(websocket: WebSocket):
                 if result.get("success"):
                     # Send initial frame from new scene
                     observation, info = game_env.reset()
+                    if info:
+                        _merge_task_metrics(stream_manager.current_metrics, info)
                     await stream_manager.broadcast_frame(observation, stream_manager.current_metrics)
                     await websocket.send_json({"type": "scene_dict_loaded", "data": result})
                 else:

@@ -41,3 +41,6 @@ pillow>=10.0.0
 
 # Async/concurrency
 aiofiles>=23.2.0
+
+# WebSocket client for RL agent (separate process)
+websockets>=12.0

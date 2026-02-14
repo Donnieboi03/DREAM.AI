@@ -39,7 +39,7 @@ DREAM.AI is a system for training and evaluating reinforcement learning agents i
 ```bash
 ./launch-local.sh
 ```
-Runs backend (Python) and frontend (npm) directly. Prerequisites: `pip install -r src/requirements.txt` and `cd src/frontend && npm install`. Opens http://localhost:8080.
+Runs backend (Python) and frontend (npm) directly. Prerequisites: `pip install -r src/requirements.txt`, `pip install -e third_party/rl_thor` (for GraphTask), and `cd src/frontend && npm install`. Opens http://localhost:8080.
 
 **Docker:**
 ```bash

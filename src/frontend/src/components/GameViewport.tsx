@@ -12,19 +12,25 @@ interface GameViewportProps {
   onMetricsUpdate?: (metrics: GameMetrics) => void;
   onEnlargedChange?: (enlarged: boolean) => void;
   className?: string;
+  userControlEnabled?: boolean;
 }
 
 export interface GameViewportHandle {
-  loadScene: (sceneName: string) => void;
+  loadScene: (sceneName: string, taskDescriptionDict?: Record<string, unknown>) => void;
   sendAction: (actionIndex: number) => void;
-  reset: () => void;
+  /** Reset scene. randomize=false (default): restore to default. randomize=true: random agent/object positions (for agent on timeout/completion). */
+  reset: (randomize?: boolean) => void;
+  /** Set control mode for backend (user vs agent). */
+  setControlMode: (mode: "user" | "agent") => void;
 }
 
 const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
-  ({ onMetricsUpdate, onEnlargedChange, className }, ref) => {
+  ({ onMetricsUpdate, onEnlargedChange, className, userControlEnabled = true }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const lastMetricsKeyRef = useRef("");
+    const userControlEnabledRef = useRef(userControlEnabled);
+    userControlEnabledRef.current = userControlEnabled;
     const [isEnlarged, setIsEnlarged] = useState(false);
 
     const setEnlarged = (v: boolean) => {
@@ -41,9 +47,13 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
     });
 
     useImperativeHandle(ref, () => ({
-      loadScene: (sceneName: string) => {
+      loadScene: (sceneName: string, taskDescriptionDict?: Record<string, unknown>) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: "load_scene", scene: sceneName }));
+          const msg: Record<string, unknown> = { type: "load_scene", scene: sceneName };
+          if (taskDescriptionDict != null) {
+            msg.task_description_dict = taskDescriptionDict;
+          }
+          wsRef.current.send(JSON.stringify(msg));
         }
       },
       sendAction: (actionIndex: number) => {
@@ -51,9 +61,14 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
           wsRef.current.send(JSON.stringify({ type: "action", action: actionIndex }));
         }
       },
-      reset: () => {
+      reset: (randomize = false) => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: "reset" }));
+          wsRef.current.send(JSON.stringify({ type: "reset", randomize }));
+        }
+      },
+      setControlMode: (mode: "user" | "agent") => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: "set_control_mode", mode }));
         }
       },
     }));
@@ -67,6 +82,10 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
           wsRef.current.onopen = () => {
             setConnectionStatus("connected");
             wsRef.current?.send(JSON.stringify({ type: "start_streaming" }));
+            wsRef.current?.send(JSON.stringify({
+              type: "set_control_mode",
+              mode: userControlEnabledRef.current ? "user" : "agent",
+            }));
           };
 
           wsRef.current.onmessage = (event) => {
@@ -114,6 +133,7 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
       connectWebSocket();
 
       const handleKeyDown = (e: KeyboardEvent) => {
+        if (!userControlEnabledRef.current) return;
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
         // Don't capture keys when user is typing in chat/input
@@ -162,7 +182,7 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
         />
         <div
           className={cn(
-            "absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium bg-black/60",
+            "absolute bottom-2 left-2 px-2 py-1 rounded text-xs font-medium bg-black/60",
             statusColor
           )}
         >
@@ -186,7 +206,7 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
           </Button>
         )}
         {!isEnlarged && (
-          <div className="absolute bottom-2 left-2 px-2 py-1 rounded text-[10px] text-muted-foreground bg-black/40">
+          <div className="absolute bottom-2 right-2 px-2 py-1 rounded text-[10px] text-muted-foreground bg-black/40">
             Double-click to enlarge
           </div>
         )}

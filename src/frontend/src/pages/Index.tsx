@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import ParticleBackground from "@/components/ParticleBackground";
 import ChatSidebar, { type ChatSession } from "@/components/ChatSidebar";
 import ChatInterface, { type Message } from "@/components/ChatInterface";
-import MetricsHUD from "@/components/MetricsHUD";
+import ControlPanel from "@/components/ControlPanel";
 import GameViewport, { type GameViewportHandle } from "@/components/GameViewport";
 import ActionPanel from "@/components/ActionPanel";
 import TaskDisplay from "@/components/TaskDisplay";
@@ -24,6 +24,7 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskSpec | null>(null);
   const [isViewportEnlarged, setIsViewportEnlarged] = useState(false);
+  const [controlMode, setControlMode] = useState<"user" | "agent">("user");
   const gameViewportRef = useRef<GameViewportHandle>(null);
   const { metrics, rewardHistory, updateMetrics, clearMetrics } = useMetrics();
 
@@ -78,7 +79,10 @@ const Index = () => {
         },
       ]);
 
-      gameViewportRef.current?.loadScene(res.scene_id);
+      gameViewportRef.current?.loadScene(
+        res.scene_id,
+        res.task?.extra?.task_description_dict as Record<string, unknown> | undefined
+      );
       toast.success("Task loaded. Scene is loading.");
     } catch (e) {
       console.error(e);
@@ -102,6 +106,11 @@ const Index = () => {
     setCurrentTask(null);
     clearMetrics();
   };
+
+  const handleControlModeChange = useCallback((mode: "user" | "agent") => {
+    setControlMode(mode);
+    gameViewportRef.current?.setControlMode(mode);
+  }, []);
 
   return (
     <div className="relative h-screen w-full overflow-hidden flex">
@@ -136,6 +145,7 @@ const Index = () => {
           ref={gameViewportRef}
           onMetricsUpdate={updateMetrics}
           onEnlargedChange={setIsViewportEnlarged}
+          userControlEnabled={controlMode === "user"}
         />
         {currentTask && <TaskDisplay task={currentTask} />}
         <div className="flex gap-2">
@@ -146,10 +156,12 @@ const Index = () => {
         <ActionPanel onAction={handleAction} />
       </div>
 
-      <MetricsHUD
+      <ControlPanel
         metrics={metrics}
         rewardHistory={rewardHistory}
         aboveOverlay={isViewportEnlarged}
+        onReset={handleReset}
+        onControlModeChange={handleControlModeChange}
       />
     </div>
   );

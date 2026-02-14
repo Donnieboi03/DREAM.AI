@@ -182,6 +182,13 @@ docker-compose up -d
 
 ## Development
 
+### GraphTask (rl_thor) for Local Development
+For task-specific reward computation (GraphTask), install rl_thor locally:
+```bash
+pip install -e third_party/rl_thor
+```
+Docker images include rl_thor automatically.
+
 ### Backend Development
 1. Edit files in `src/backend/`
 2. Rebuild: `docker-compose build backend`

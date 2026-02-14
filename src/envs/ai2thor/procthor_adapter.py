@@ -299,7 +299,14 @@ def make_procthor_env(
         options = scene_spec_to_procthor_options(scene_spec)
         options["quality"] = "Very High"
         controller, house = create_procthor_scene(**options)
-        env = ThorEnv(controller=controller, width=width, height=height, render_mode="rgb_array")
+        initial_scene = house.to_dict() if hasattr(house, "to_dict") else house
+        env = ThorEnv(
+            controller=controller,
+            width=width,
+            height=height,
+            render_mode="rgb_array",
+            initial_scene=initial_scene,
+        )
         print("✓ ProcTHOR environment initialized successfully")
         return env
     except Exception as e:
@@ -319,7 +326,13 @@ def make_procthor_env(
                 visibilityDistance=1.5,
             )
             
-            env = ThorEnv(controller=controller, width=width, height=height, render_mode="rgb_array")
+            env = ThorEnv(
+                controller=controller,
+                width=width,
+                height=height,
+                render_mode="rgb_array",
+                initial_scene="FloorPlan1",
+            )
             print("✓ Fallback AI2-THOR environment initialized successfully")
             return env
         except Exception as fallback_error:

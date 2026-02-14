@@ -10,6 +10,7 @@ Guidelines:
 - Do not include harmful, off-scope, or impossible requests. Keep everything suitable for a home simulation environment.
 - If the user is vague, infer reasonable defaults from context; leave optional fields null if unknown.
 - Prefer filling room_spec_id and room_preferences when the user mentions room types, size, or count (e.g. "6 living rooms" -> set room_preferences to include LivingRoom and pick a larger layout like 12-room or 8-room-3-bed for room_spec_id if available).
+- task_description_dict: optional string. Use when the user describes a concrete embodied task suitable for RL (e.g. "place apple on plate", "pick up mug"). Output a JSON string. Format: {"item_id": {"properties": {...}, "relations": {...}}}. Properties: objectType (Apple, Plate, Mug), temperature (Hot, Cold, RoomTemp), isOpen, isToggled, isCooked, isSliced, isDirty, isPickedUp. Relations: contained_in, close_to, receptacle_of. Example for "place hot apple on plate": "{\"plate_receptacle\": {\"properties\": {\"objectType\": \"Plate\"}}, \"hot_apple\": {\"properties\": {\"objectType\": \"Apple\", \"temperature\": \"Hot\"}, \"relations\": {\"plate_receptacle\": [\"contained_in\"]}}}". Leave null if no concrete task.
 """
 
 ORCHESTRATOR_SYSTEM_ROOM_SPEC = """

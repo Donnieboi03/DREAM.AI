@@ -3,6 +3,7 @@
 from typing import Optional, Any
 from pydantic import BaseModel, Field
 from ..schemas import TaskSpec
+from ..schemas.declarative_spec import parse_task_description_dict_json
 from ..llm.pipeline import run_orchestrator_llm, get_api_key
 from ..api.runtime_state import get_scene_names
 from envs.ai2thor.procthor_adapter import get_builtin_scene_for_spec
@@ -59,12 +60,13 @@ async def generate_task_from_prompt(
         print(f"[Pipeline] Processing prompt: {prompt[:80]}...")
         declarative_spec = run_orchestrator_llm(prompt)
         print(
-            "[Pipeline] DeclarativeSpec: goal_type=%r room_spec_id=%r room_preferences=%r object_requests=%r"
+            "[Pipeline] DeclarativeSpec: goal_type=%r room_spec_id=%r room_preferences=%r object_requests=%r task_description_dict=%s"
             % (
                 declarative_spec.goal_type,
                 declarative_spec.room_spec_id,
                 declarative_spec.room_preferences,
                 declarative_spec.object_requests,
+                "present" if declarative_spec.task_description_dict else "null",
             )
         )
         
@@ -94,16 +96,22 @@ async def generate_task_from_prompt(
         # Build goal description
         goal = prompt if prompt else f"Complete task: {declarative_spec.task_focus or 'Unknown'}"
         
+        extra = {}
+        task_dict = parse_task_description_dict_json(declarative_spec.task_description_dict)
+        if task_dict:
+            extra["task_description_dict"] = task_dict
+
         task = TaskSpec(
             description=prompt,
             goal=goal,
             success_criteria=success_criteria,
             max_steps=max_steps,
             subtasks=[],
+            extra=extra if extra else None,
         )
-        
+
         scene_id = scene_id or scene_name
-        
+
         return TaskGenerationResponse(
             task=task,
             scene_id=scene_id,

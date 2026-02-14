@@ -6,6 +6,8 @@ export interface TaskSpec {
   success_criteria: string[];
   max_steps: number;
   subtasks: unknown[];
+  /** Provider-specific fields, e.g. task_description_dict for rl_thor Graph Tasks */
+  extra?: Record<string, unknown>;
 }
 
 export interface GenerateTaskResponse {
@@ -68,5 +70,29 @@ export async function healthCheck(): Promise<{
   const url = getDreamAiApiUrl("/health");
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
+  return res.json();
+}
+
+export async function rlAgentStatus(): Promise<{ running: boolean }> {
+  const url = getDreamAiApiUrl("/api/rl/status");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`RL status failed: ${res.status}`);
+  return res.json();
+}
+
+export async function rlAgentStart(): Promise<{ running: boolean }> {
+  const url = getDreamAiApiUrl("/api/rl/start");
+  const res = await fetch(url, { method: "POST" });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `RL start failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function rlAgentStop(): Promise<{ running: boolean }> {
+  const url = getDreamAiApiUrl("/api/rl/stop");
+  const res = await fetch(url, { method: "POST" });
+  if (!res.ok) throw new Error(`RL stop failed: ${res.status}`);
   return res.json();
 }

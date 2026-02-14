@@ -1,0 +1,22 @@
+{
+  "task_id": null,
+  "description": "Train a model to pick up apple in kitchen",
+  "goal": "Train a model to pick up apple in kitchen",
+  "success_criteria": [
+    "Complete: pick up",
+    "Interact with requested objects: apple",
+    "Task completed within step limit"
+  ],
+  "max_steps": 500,
+  "subtasks": [],
+  "extra": {
+    "task_description_dict": {
+      "apple_to_pickup": {
+        "properties": {
+          "objectType": "Apple",
+          "isPickedUp": true
+        }
+      }
+    }
+  }
+}

@@ -10,7 +10,23 @@ Guidelines:
 - Do not include harmful, off-scope, or impossible requests. Keep everything suitable for a home simulation environment.
 - If the user is vague, infer reasonable defaults from context; leave optional fields null if unknown.
 - Prefer filling room_spec_id and room_preferences when the user mentions room types, size, or count (e.g. "6 living rooms" -> set room_preferences to include LivingRoom and pick a larger layout like 12-room or 8-room-3-bed for room_spec_id if available).
-- task_description_dict: optional string. Use when the user describes a concrete embodied task suitable for RL (e.g. "place apple on plate", "pick up mug"). Output a JSON string. Format: {"item_id": {"properties": {...}, "relations": {...}}}. Properties: objectType (Apple, Plate, Mug), temperature (Hot, Cold, RoomTemp), isOpen, isToggled, isCooked, isSliced, isDirty, isPickedUp. Relations: contained_in, close_to, receptacle_of. Example for "place hot apple on plate": "{\"plate_receptacle\": {\"properties\": {\"objectType\": \"Plate\"}}, \"hot_apple\": {\"properties\": {\"objectType\": \"Apple\", \"temperature\": \"Hot\"}, \"relations\": {\"plate_receptacle\": [\"contained_in\"]}}}". Leave null if no concrete task.
+- rl_task_type: optional. When the user describes a concrete embodied task, infer the matching type. One of: PlaceIn, Pickup, Cook, Open, Toggle, Break, CoolDown, PlaceHeatedIn, PlaceCooledIn, PlaceCleanedIn, PlaceTwoIn, LookInLight. Leave null if no concrete task or task does not fit.
+- rl_task_params: optional JSON object string. Required when rl_task_type is set. Example: "{\"placed_object_type\": \"Apple\", \"receptacle_type\": \"Plate\"}". Use EXACT object type strings (Apple, Plate, Mug, Potato, Tomato, Bowl, Cup, Fridge, etc.). Do NOT use "visible". Prefer rl_task_type + rl_task_params over task_description_dict when a known type fits.
+  - PlaceIn: {placed_object_type, receptacle_type} e.g. "place apple on plate"
+  - Pickup: {picked_up_object_type} e.g. "pick up the mug"
+  - Cook: {cooked_object_type} e.g. "cook the potato"
+  - Open: {opened_object_type} e.g. "open the drawer"
+  - Toggle: {toggled_object_type} e.g. "turn on the lamp"
+  - Break: {broken_object_type} e.g. "break the egg"
+  - CoolDown: {cooled_object_type} e.g. "cool down the apple"
+  - PlaceHeatedIn: {placed_object_type, receptacle_type} e.g. "place hot apple on plate"
+  - PlaceCooledIn: {placed_object_type, receptacle_type} e.g. "put cold apple in fridge"
+  - PlaceCleanedIn: {placed_object_type, receptacle_type} e.g. "wash apple and put on plate"
+  - PlaceTwoIn: {object_type_1, object_type_2, receptacle_type} e.g. "put apple and mug on table"
+  - LookInLight: {looked_at_object_type} e.g. "look at book in light"
+- task_description_dict: optional string. Fallback when rl_task_type does not apply. Use only for custom tasks. Format: {"item_id": {"properties": {...}, "relations": {...}}}. Properties: objectType, temperature (Hot/Cold/RoomTemp), isOpen, isToggled, isCooked, isSliced, isDirty, isPickedUp. Do NOT use "visible". Relations: contained_in, close_to, receptacle_of. Leave null if rl_task_type applies.
+- policy_mode: optional. Choose from: default (general), fast (quick training), sample_efficient (few env steps), exploration (sparse rewards, need more exploration). Match to task difficulty and user intent. Leave null for default.
+- network_size: optional. Choose from: small (fewer params, faster), medium (default capacity), large (more capacity for complex tasks). Match to task complexity and compute constraints. Leave null for medium.
 """
 
 ORCHESTRATOR_SYSTEM_ROOM_SPEC = """

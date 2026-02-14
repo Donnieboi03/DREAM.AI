@@ -12,7 +12,6 @@ interface GameViewportProps {
   onMetricsUpdate?: (metrics: GameMetrics) => void;
   onEnlargedChange?: (enlarged: boolean) => void;
   className?: string;
-  userControlEnabled?: boolean;
 }
 
 export interface GameViewportHandle {
@@ -20,17 +19,13 @@ export interface GameViewportHandle {
   sendAction: (actionIndex: number) => void;
   /** Reset scene. randomize=false (default): restore to default. randomize=true: random agent/object positions (for agent on timeout/completion). */
   reset: (randomize?: boolean) => void;
-  /** Set control mode for backend (user vs agent). */
-  setControlMode: (mode: "user" | "agent") => void;
 }
 
 const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
-  ({ onMetricsUpdate, onEnlargedChange, className, userControlEnabled = true }, ref) => {
+  ({ onMetricsUpdate, onEnlargedChange, className }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wsRef = useRef<WebSocket | null>(null);
     const lastMetricsKeyRef = useRef("");
-    const userControlEnabledRef = useRef(userControlEnabled);
-    userControlEnabledRef.current = userControlEnabled;
     const [isEnlarged, setIsEnlarged] = useState(false);
 
     const setEnlarged = (v: boolean) => {
@@ -66,11 +61,6 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
           wsRef.current.send(JSON.stringify({ type: "reset", randomize }));
         }
       },
-      setControlMode: (mode: "user" | "agent") => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: "set_control_mode", mode }));
-        }
-      },
     }));
 
     useEffect(() => {
@@ -82,10 +72,6 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
           wsRef.current.onopen = () => {
             setConnectionStatus("connected");
             wsRef.current?.send(JSON.stringify({ type: "start_streaming" }));
-            wsRef.current?.send(JSON.stringify({
-              type: "set_control_mode",
-              mode: userControlEnabledRef.current ? "user" : "agent",
-            }));
           };
 
           wsRef.current.onmessage = (event) => {
@@ -133,7 +119,6 @@ const GameViewport = forwardRef<GameViewportHandle, GameViewportProps>(
       connectWebSocket();
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (!userControlEnabledRef.current) return;
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
         // Don't capture keys when user is typing in chat/input

@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
@@ -11,6 +11,7 @@ import io
 
 from envs.ai2thor.thor_env import ThorEnv, THOR_DISCRETE_ACTIONS
 from ..schemas import SceneSpec, TaskSpec, RewardSpec
+from . import rl_state
 
 
 class GameStreamManager:
@@ -20,7 +21,6 @@ class GameStreamManager:
         self.env = env
         self.connections: list[WebSocket] = []
         self.connection_roles: dict[WebSocket, str] = {}
-        self.control_mode: Literal["user", "agent"] = "user"
         self.current_metrics = {
             "agent_position": None,
             "agent_rotation": None,
@@ -55,10 +55,6 @@ class GameStreamManager:
         if websocket in self.connections:
             self.connection_roles[websocket] = role
 
-    def set_control_mode(self, mode: Literal["user", "agent"]) -> None:
-        """Set control mode. Only 'browser' can change this."""
-        self.control_mode = mode
-
     async def broadcast_frame(self, rgb_array: np.ndarray, metrics: dict):
         """Send JPEG frame and metrics to all connected clients."""
         # Resize frame to target resolution if needed
@@ -79,8 +75,9 @@ class GameStreamManager:
         pil_image.save(jpeg_buffer, format="JPEG", quality=self.jpeg_quality, optimize=False)
         jpeg_bytes = jpeg_buffer.getvalue()
 
-        # Include control_mode in metrics so RL client knows who controls
-        metrics_with_mode = {**metrics, "control_mode": self.control_mode}
+        # Derived for backward compat: "agent" when RL process running, else "user"
+        control_mode = "agent" if rl_state.is_rl_agent_running() else "user"
+        metrics_with_mode = {**metrics, "control_mode": control_mode}
 
         # Create message payload
         message = {
@@ -105,7 +102,7 @@ class GameStreamManager:
     async def handle_action(self, action_data: dict, websocket: WebSocket) -> dict:
         """
         Process incoming action from browser or RL agent and step environment.
-        Only accepts actions from the connection that has control based on control_mode.
+        Control is implicit: agent has control when RL process is running; browser otherwise.
         
         Expected action_data format:
         {
@@ -118,12 +115,13 @@ class GameStreamManager:
         if "action" not in action_data:
             return {"error": "Invalid action format"}
 
-        # Filter by control mode: user -> only browser; agent -> only rl_agent
+        # Filter by process state: rl_agent only when process running; browser otherwise
         role = self.connection_roles.get(websocket, "browser")
-        if self.control_mode == "user" and role != "browser":
-            return {"skipped": True, "reason": "user_control", "metrics": self.current_metrics}
-        if self.control_mode == "agent" and role != "rl_agent":
+        agent_running = rl_state.is_rl_agent_running()
+        if agent_running and role != "rl_agent":
             return {"skipped": True, "reason": "agent_control", "metrics": self.current_metrics}
+        if not agent_running and role != "browser":
+            return {"skipped": True, "reason": "user_control", "metrics": self.current_metrics}
 
         action_idx = action_data["action"]
         if not (0 <= action_idx < len(THOR_DISCRETE_ACTIONS)):

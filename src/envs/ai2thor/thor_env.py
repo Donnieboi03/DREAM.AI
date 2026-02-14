@@ -281,13 +281,20 @@ class ThorEnv(gym.Env):
             "agent_position": agent.get("position"),
             "agent_rotation": agent.get("rotation"),
         }
+        # Small exploration bonus for successful movement; gives dense signal for navigation
+        _EXPLORATION_ACTIONS = (
+            "MoveAhead", "MoveBack", "RotateLeft", "RotateRight", "LookUp", "LookDown"
+        )
+        if last_success and action_name in _EXPLORATION_ACTIONS:
+            reward += 0.01
+
         if self._reward_handler is not None:
             try:
                 controller_action = getattr(self._controller, "last_action", {}) or {}
                 rw, terminated, step_info = self._reward_handler.get_reward(
                     self._last_event, controller_action
                 )
-                reward = float(rw) if rw is not None else reward
+                reward += float(rw) if rw is not None else 0.0
                 if step_info:
                     info.update(step_info)
                 info["is_success"] = terminated

@@ -1,10 +1,12 @@
 """Task orchestration for prompt-based environment control."""
 
+import json
 from typing import Optional, Any
 from pydantic import BaseModel, Field
 from ..schemas import TaskSpec
 from ..schemas.declarative_spec import parse_task_description_dict_json
 from ..llm.pipeline import run_orchestrator_llm, get_api_key
+from .task_builder import build_task_from_type
 from ..api.runtime_state import get_scene_names
 from envs.ai2thor.procthor_adapter import get_builtin_scene_for_spec
 
@@ -60,12 +62,13 @@ async def generate_task_from_prompt(
         print(f"[Pipeline] Processing prompt: {prompt[:80]}...")
         declarative_spec = run_orchestrator_llm(prompt)
         print(
-            "[Pipeline] DeclarativeSpec: goal_type=%r room_spec_id=%r room_preferences=%r object_requests=%r task_description_dict=%s"
+            "[Pipeline] DeclarativeSpec: goal_type=%r room_spec_id=%r room_preferences=%r object_requests=%r rl_task_type=%r task_description_dict=%s"
             % (
                 declarative_spec.goal_type,
                 declarative_spec.room_spec_id,
                 declarative_spec.room_preferences,
                 declarative_spec.object_requests,
+                declarative_spec.rl_task_type,
                 "present" if declarative_spec.task_description_dict else "null",
             )
         )
@@ -97,9 +100,30 @@ async def generate_task_from_prompt(
         goal = prompt if prompt else f"Complete task: {declarative_spec.task_focus or 'Unknown'}"
         
         extra = {}
-        task_dict = parse_task_description_dict_json(declarative_spec.task_description_dict)
+        # Prefer structured task type over raw task_description_dict
+        task_dict = None
+        if declarative_spec.rl_task_type and declarative_spec.rl_task_params:
+            try:
+                params = json.loads(declarative_spec.rl_task_params)
+            except (json.JSONDecodeError, TypeError):
+                params = None
+            if params and isinstance(params, dict):
+                task_dict = build_task_from_type(
+                    declarative_spec.rl_task_type,
+                    params,
+                )
+        if task_dict is None and declarative_spec.task_description_dict:
+            task_dict = parse_task_description_dict_json(declarative_spec.task_description_dict)
         if task_dict:
             extra["task_description_dict"] = task_dict
+        if declarative_spec.policy_mode and declarative_spec.policy_mode in (
+            "default", "fast", "sample_efficient", "exploration"
+        ):
+            extra["policy_mode"] = declarative_spec.policy_mode
+        if declarative_spec.network_size and declarative_spec.network_size in (
+            "small", "medium", "large"
+        ):
+            extra["network_size"] = declarative_spec.network_size
 
         task = TaskSpec(
             description=prompt,
@@ -115,7 +139,7 @@ async def generate_task_from_prompt(
         return TaskGenerationResponse(
             task=task,
             scene_id=scene_id,
-            message=f"Task generated from prompt; selected scene: {scene_id}",
+            message="Task generated",
             scene_dict=None,
         )
     

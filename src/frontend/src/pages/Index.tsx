@@ -24,7 +24,6 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentTask, setCurrentTask] = useState<TaskSpec | null>(null);
   const [isViewportEnlarged, setIsViewportEnlarged] = useState(false);
-  const [controlMode, setControlMode] = useState<"user" | "agent">("user");
   const gameViewportRef = useRef<GameViewportHandle>(null);
   const { metrics, rewardHistory, updateMetrics, clearMetrics } = useMetrics();
 
@@ -75,7 +74,7 @@ const Index = () => {
         ...prev,
         {
           role: "assistant",
-          content: `**Task generated.**\n\nGoal: ${res.task.goal}\n\nLoading scene: ${res.scene_id}`,
+          content: `**Task generated!**\n\nI've set up a training task for you. Here's what I understood:\n\n**Your goal:** ${res.task.goal}\n\nThe scene is loading now—your agent will learn to accomplish this in no time. When you're ready, hit **Run Agent** in the control panel to start training!`,
         },
       ]);
 
@@ -83,7 +82,7 @@ const Index = () => {
         res.scene_id,
         res.task?.extra?.task_description_dict as Record<string, unknown> | undefined
       );
-      toast.success("Task loaded. Scene is loading.");
+      toast.success("Task loaded.");
     } catch (e) {
       console.error(e);
       const errMsg = e instanceof Error ? e.message : "Failed to generate task";
@@ -106,11 +105,6 @@ const Index = () => {
     setCurrentTask(null);
     clearMetrics();
   };
-
-  const handleControlModeChange = useCallback((mode: "user" | "agent") => {
-    setControlMode(mode);
-    gameViewportRef.current?.setControlMode(mode);
-  }, []);
 
   return (
     <div className="relative h-screen w-full overflow-hidden flex">
@@ -145,7 +139,6 @@ const Index = () => {
           ref={gameViewportRef}
           onMetricsUpdate={updateMetrics}
           onEnlargedChange={setIsViewportEnlarged}
-          userControlEnabled={controlMode === "user"}
         />
         {currentTask && <TaskDisplay task={currentTask} />}
         <div className="flex gap-2">
@@ -161,7 +154,7 @@ const Index = () => {
         rewardHistory={rewardHistory}
         aboveOverlay={isViewportEnlarged}
         onReset={handleReset}
-        onControlModeChange={handleControlModeChange}
+        currentTask={currentTask}
       />
     </div>
   );

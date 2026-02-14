@@ -1,17 +1,25 @@
-import { useState, useEffect, memo } from "react";
-import { ChevronDown, ChevronUp, LayoutDashboard, Play, RotateCcw, Square } from "lucide-react";
+import { useRef, useState, useEffect, memo } from "react";
+import { ChevronDown, ChevronUp, Download, LayoutDashboard, Loader2, Play, RotateCcw, Square, Upload } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, YAxis } from "recharts";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { rlAgentStatus, rlAgentStart, rlAgentStop } from "@/lib/dreamaiApi";
+import {
+  rlAgentStatus,
+  rlAgentStart,
+  rlAgentStop,
+  rlModelImport,
+  rlModelExport,
+} from "@/lib/dreamaiApi";
 import type { GameMetrics } from "@/types/game";
+import type { TaskSpec } from "@/lib/dreamaiApi";
 
 interface ControlPanelProps {
   metrics?: GameMetrics | null;
   rewardHistory?: { value: number }[];
   aboveOverlay?: boolean;
   onReset?: () => void;
-  onControlModeChange?: (mode: "user" | "agent") => void;
+  currentTask?: TaskSpec | null;
 }
 
 const ControlPanel = memo(function ControlPanel({
@@ -19,11 +27,15 @@ const ControlPanel = memo(function ControlPanel({
   rewardHistory = [],
   aboveOverlay = false,
   onReset,
-  onControlModeChange,
+  currentTask = null,
 }: ControlPanelProps) {
   const [collapsed, setCollapsed] = useState(true);
   const [agentRunning, setAgentRunning] = useState(false);
   const [agentLoading, setAgentLoading] = useState(false);
+  const [importExportLoading, setImportExportLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const stepCountAtStartRef = useRef<number>(0);
+  const connectingStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     const poll = () => rlAgentStatus().then((r) => setAgentRunning(r.running)).catch(() => {});
@@ -32,9 +44,24 @@ const ControlPanel = memo(function ControlPanel({
     return () => clearInterval(id);
   }, []);
 
+  // Clear loading when agent has connected and started stepping, or after timeout
   useEffect(() => {
-    onControlModeChange?.(agentRunning ? "agent" : "user");
-  }, [agentRunning, onControlModeChange]);
+    if (!agentLoading || !agentRunning) return;
+    const check = () => {
+      const stepCount = metrics?.step_count ?? 0;
+      const elapsed = connectingStartedAtRef.current != null ? Date.now() - connectingStartedAtRef.current : 0;
+      const stepCountChanged = stepCount !== stepCountAtStartRef.current;
+      const agentLikelyReady = elapsed > 3000; // Agent connected and streaming after ~3s
+      const timedOut = elapsed > 20000; // Hard cap
+      if (stepCountChanged || agentLikelyReady || timedOut) {
+        setAgentLoading(false);
+        connectingStartedAtRef.current = null;
+      }
+    };
+    check();
+    const id = setInterval(check, 500);
+    return () => clearInterval(id);
+  }, [agentLoading, agentRunning, metrics?.step_count]);
 
   const handleAgentToggle = async () => {
     if (agentLoading) return;
@@ -42,17 +69,21 @@ const ControlPanel = memo(function ControlPanel({
     try {
       if (agentRunning) {
         await rlAgentStop();
-        onControlModeChange?.("user");
         setAgentRunning(false);
+        setAgentLoading(false);
       } else {
-        await rlAgentStart();
-        onControlModeChange?.("agent");
+        stepCountAtStartRef.current = metrics?.step_count ?? 0;
+        connectingStartedAtRef.current = Date.now();
+        const extra = currentTask?.extra as Record<string, unknown> | undefined;
+        const policy_mode = typeof extra?.policy_mode === "string" ? extra.policy_mode : undefined;
+        const network_size = typeof extra?.network_size === "string" ? extra.network_size : undefined;
+        await rlAgentStart({ policy_mode, network_size });
         setAgentRunning(true);
+        // agentLoading stays true until useEffect detects step change or timeout
       }
     } catch {
-      // Keep current state on error
-    } finally {
       setAgentLoading(false);
+      connectingStartedAtRef.current = null;
     }
   };
 
@@ -61,11 +92,53 @@ const ControlPanel = memo(function ControlPanel({
     if (agentRunning) {
       try {
         await rlAgentStop();
-        const res = await rlAgentStart();
+        const extra = currentTask?.extra as Record<string, unknown> | undefined;
+        const policy_mode = typeof extra?.policy_mode === "string" ? extra.policy_mode : undefined;
+        const network_size = typeof extra?.network_size === "string" ? extra.network_size : undefined;
+        const res = await rlAgentStart({ policy_mode, network_size });
         setAgentRunning(res.running);
       } catch {
         setAgentRunning(false);
       }
+    }
+  };
+
+  const handleImport = () => {
+    if (agentRunning || importExportLoading) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !file.name.toLowerCase().endsWith(".zip")) return;
+    setImportExportLoading(true);
+    try {
+      await rlModelImport(file);
+      toast.success("Model imported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Invalid file type");
+    } finally {
+      setImportExportLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (agentRunning || importExportLoading) return;
+    setImportExportLoading(true);
+    try {
+      const blob = await rlModelExport();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dreamai_model.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Model exported");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Export failed");
+    } finally {
+      setImportExportLoading(false);
     }
   };
 
@@ -210,7 +283,12 @@ const ControlPanel = memo(function ControlPanel({
               agentLoading && "opacity-60 cursor-not-allowed"
             )}
           >
-            {agentRunning ? (
+            {agentLoading ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {agentRunning ? "Connecting…" : "Starting…"}
+              </>
+            ) : agentRunning ? (
               <>
                 <Square className="h-3 w-3" />
                 Stop Agent
@@ -222,6 +300,37 @@ const ControlPanel = memo(function ControlPanel({
               </>
             )}
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <div className="flex gap-1">
+            <button
+              onClick={handleImport}
+              disabled={agentRunning || importExportLoading}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-medium uppercase tracking-wider rounded transition-colors text-neon-cyan hover:bg-neon-cyan/10",
+                (agentRunning || importExportLoading) && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <Upload className="h-3 w-3" />
+              Import
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={agentRunning || importExportLoading}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[10px] font-medium uppercase tracking-wider rounded transition-colors text-neon-cyan hover:bg-neon-cyan/10",
+                (agentRunning || importExportLoading) && "opacity-60 cursor-not-allowed"
+              )}
+            >
+              <Download className="h-3 w-3" />
+              Export
+            </button>
+          </div>
           {onReset && (
             <button
               onClick={handleReset}

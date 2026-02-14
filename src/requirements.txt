@@ -44,3 +44,6 @@ aiofiles>=23.2.0
 
 # WebSocket client for RL agent (separate process)
 websockets>=12.0
+
+# RL training (SB3)
+stable-baselines3>=2.0.0

@@ -12,7 +12,7 @@ export interface GameMetrics {
   is_success?: boolean | null;
   /** Task type name, e.g. "PlaceIn", "Pickup". rl_thor-style. */
   task_type?: string | null;
-  /** Who controls the agent: "user" (keyboard) or "agent" (RL). */
+  /** Who controls the agent: "user" or "agent". Derived from process state; kept for display only. */
   control_mode?: "user" | "agent";
 }
 

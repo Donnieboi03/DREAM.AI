@@ -128,18 +128,6 @@ async def websocket_game_endpoint(websocket: WebSocket):
                 else:
                     await websocket.send_json({"type": "error", "message": f"Unknown role: {role}"})
 
-            elif message_type == "set_control_mode":
-                # Only browser can change control mode
-                if stream_manager.connection_roles.get(websocket, "browser") == "browser":
-                    mode = data.get("mode", "user")
-                    if mode in ("user", "agent"):
-                        stream_manager.set_control_mode(mode)
-                        await websocket.send_json({"type": "control_mode_set", "mode": mode})
-                    else:
-                        await websocket.send_json({"type": "error", "message": f"Unknown mode: {mode}"})
-                else:
-                    await websocket.send_json({"type": "error", "message": "Only browser can set control mode"})
-
             elif message_type == "action":
                 # Handle discrete action (filtered by control mode and connection role)
                 result = await stream_manager.handle_action(data, websocket)

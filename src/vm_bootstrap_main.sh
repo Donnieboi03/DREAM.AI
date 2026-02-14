@@ -73,11 +73,11 @@ if [ ! -S /tmp/.X11-unix/X1 ]; then
 fi
 
 
-echo "[bootstrap] Running DreamAI container..."
+echo "[bootstrap] Running DreamAI container (ai2thor smoke test)..."
 docker run --rm --gpus all \
   -e DISPLAY=$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v "$REPO_DIR:/workspace" \
   -w /workspace \
   "$IMAGE" \
-  python3 src/tests/ai2thor_send_frame.py
+  python3 -c "from ai2thor.controller import Controller; c=Controller(scene='FloorPlan1'); c.step('Pass'); c.stop(); print('ai2thor OK')"
